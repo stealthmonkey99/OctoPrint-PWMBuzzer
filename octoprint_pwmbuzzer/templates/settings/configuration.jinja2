@@ -1,0 +1,120 @@
+<legend>{{ _('Hardware Buzzer') }}</legend>
+
+<div class="control-group">
+    If your printer doesn't support M300 codes, you can add a passive buzzer
+    to your setup (<a href="https://peppe8o.com/use-passive-buzzer-with-raspberry-pi-and-python/" target="_blank" rel="noreferrer">see example</a>) and configure it here.
+</div>
+
+<div class="control-group">
+    <div class="controls">
+        <label class="checkbox">
+            <input type="checkbox" data-bind="checked: hw_enabled"> {{ _('Play tone with passive buzzer connected to GPIO') }}
+        </label>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label">{{ _('GPIO Pin') }}</label>
+    <div class="controls">
+        <p>
+        <select data-bind="value: hw_gpio_pin, enable: hw_enabled">
+            <option value="0">GPIO 0</option>
+            <option value="1">GPIO 1</option>
+            <option value="2">GPIO 2</option>
+            <option value="3">GPIO 3</option>
+            <option value="4">GPIO 4</option>
+            <option value="5">GPIO 5</option>
+            <option value="6">GPIO 6</option>
+            <option value="7">GPIO 7</option>
+            <option value="8">GPIO 8</option>
+            <option value="9">GPIO 9</option>
+            <option value="10">GPIO 10</option>
+            <option value="11">GPIO 11</option>
+            <option value="12">GPIO 12</option>
+            <option value="13">GPIO 13</option>
+            <option value="14">GPIO 14</option>
+            <option value="15">GPIO 15</option>
+            <option value="16">GPIO 16</option>
+            <option value="17">GPIO 17</option>
+            <option value="18">GPIO 18</option>
+            <option value="19">GPIO 19</option>
+            <option value="20">GPIO 20</option>
+            <option value="21">GPIO 21</option>
+            <option value="22">GPIO 22</option>
+            <option value="23">GPIO 23</option>
+            <option value="24">GPIO 24</option>
+            <option value="25">GPIO 25</option>
+            <option value="26">GPIO 26</option>
+            <option value="27">GPIO 27</option>
+        </select>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label">{{ _('Duty Cycle') }}</label>
+    <div class="controls">
+        <input type="range" class="input-large" min="0" max="100" step="1" data-bind="value: hw_duty_cycle, enable: hw_enabled">
+        <div class="input-append">
+            <input input type="number" class="input-mini text-right" min="0" max="100" data-bind="value: hw_duty_cycle, enable: hw_enabled">
+            <span class="add-on">%</span>
+        </div>
+    </div>
+</div>
+
+<legend>{{ _('Software Buzzer') }}</legend>
+
+<div class="control-group">
+    You can also have your browser window handle the playback of M300 commands while you are actively connected to the OctoPrint server.
+</div>
+
+<div class="control-group">
+    <div class="controls">
+        <label class="checkbox">
+            <input type="checkbox" data-bind="checked: sw_enabled"> {{ _('Play tone in browser window') }}
+        </label>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label">{{ _('Volume') }}</label>
+    <div class="controls">
+        <input type="range" class="input-large" min="0" max="100" step="1" data-bind="value: sw_volume, enable: sw_enabled">
+        <div class="input-append">
+            <input input type="number" class="input-mini text-right" min="0" max="100" data-bind="value: sw_volume, enable: sw_enabled">
+            <span class="add-on">%</span>
+        </div>
+    </div>
+</div>
+
+<legend>{{ _('Default Tone') }}</legend>
+
+<div class="control-group">
+    These settings will be used as the defaults when an M300 command is
+    detected but does not include an "S" or "P" parameter.
+</div>
+
+<div class="control-group">
+    <label class="control-label">{{ _('Frequency') }}</label>
+    <div class="controls">
+        <div class="input-append">
+            <input type="number" class="input-mini text-right" min="0" max="20000" data-bind="value: default_frequency">
+            <span class="add-on">Hz</span>
+        </div>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label">{{ _('Duration') }}</label>
+    <div class="controls">
+        <div class="input-append">
+            <input type="number" class="input-mini text-right" min="0" max="10000" data-bind="value: default_duration">
+            <span class="add-on">ms</span>
+        </div>
+    </div>
+</div>
+
+<div class="control-group">
+    <div class="controls">
+        <a class="btn btn-warning" href="#" data-bind="click: testTone"><i class="icon-music"></i> {{ _('Play Default Tone') }}</a>
+    </div>
+</div>

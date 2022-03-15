@@ -1,0 +1,76 @@
+.piano {
+    font-size: 0px;
+    padding-left: 1px;
+    white-space: nowrap;
+}
+
+.key-group {
+    display: inline-grid;
+    position: relative;
+}
+
+.piano .btn {
+    background: white;
+    color: #08c;
+    width: 34px;
+    height: 170px;
+    font-size: small;
+    padding: 40px 0 0 0;
+    margin-left: -1px;
+    -webkit-box-shadow: inset -1px -1px 6px 2px #ccc;
+    -moz-box-shadow: inset -1px -1px 6px 2px #ccc;
+    box-shadow: inset -1px -1px 6px 2px #ccc;
+}
+
+.piano .btn:hover {
+    background-color: #e3e6f2;
+    color: #d33;
+}
+
+.piano .btn:active {
+    -webkit-box-shadow: inset 1px 1px 4px 1px #ccc;
+    -moz-box-shadow: inset 1px 1px 4px 1px #ccc;
+    box-shadow: inset 1px 1px 4px 1px #ccc;
+}
+
+.piano .btn.halfstep {
+    background: black;
+    color: white;
+    height: 80px;
+    width: 28px;
+    left: 17px;
+    position: absolute;
+    z-index: 1;
+    -webkit-box-shadow: inset 2px 2px 4px 1px #999;
+    -moz-box-shadow: inset 2px 2px 4px 1px #999;
+    box-shadow: inset 2px 2px 4px 1px #999;
+}
+
+.piano .btn.halfstep:hover {
+    background-color: #283040;
+    color: #d33;
+}
+
+.piano .btn.halfstep:active {
+    -webkit-box-shadow: inset -1px -1px 6px 2px #999;
+    -moz-box-shadow: inset -1px -1px 6px 2px #999;
+    box-shadow: inset -1px -1px 6px 2px #999;
+}
+
+.composition-text {
+    margin-top: 10px;
+    height: 180px;
+    max-width: 693px;
+    font-family: monospace;
+    font-weight: bold;
+    font-size: small;
+    overflow-y: scroll;
+}
+
+.icon-undo.icon-redo:before {
+    -moz-transform: scale(-1, 1);
+    -webkit-transform: scale(-1, 1);
+    -o-transform: scale(-1, 1);
+    -ms-transform: scale(-1, 1);
+    transform: scale(-1, 1);
+}

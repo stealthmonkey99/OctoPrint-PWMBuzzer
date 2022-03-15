@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_pwmbuzzer/templates *
+recursive-include octoprint_pwmbuzzer/translations *
+recursive-include octoprint_pwmbuzzer/static *

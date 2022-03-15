@@ -1,0 +1,41 @@
+{% macro eventpicker(id, name) -%}
+<div class="control-group">
+    <label class="control-label">{{ _(name) }}</label>
+    <div class="controls">
+        <div class="btn-group gcode-actions-group">
+            <a class="btn btn-warning" href="#" data-bind="click: function() { testEventTune('{{id}}') }"><i class="icon-music icon-white"></i> {{ _('Try it') }}</a>
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                {% for preset_id, preset in plugin_pwmbuzzer_tune_presets.items() -%}
+                    <span data-bind="visible: events.{{ id }}.id() == '{{preset_id}}'">{{ preset.name }}</span>
+                {% endfor %}
+                <span data-bind="visible: events.{{ id }}.is_file"><i class="icon-file-alt"></i> <span data-bind="text: events.{{ id }}.id"></span></span>
+                <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                {% for preset_id, preset in plugin_pwmbuzzer_tune_presets.items() -%}
+                    <li><a href="#" data-bind="click: function() { setEventTune('{{id}}', '{{preset_id}}') }">{{ preset.name }}</a></li>
+                {% endfor %}
+                {% if plugin_pwmbuzzer_tune_files|length > 0 -%}
+                    <li class="divider"></li>
+                {% endif %}
+                {% for tune_id in plugin_pwmbuzzer_tune_files -%}
+                    <li><a href="#" data-bind="click: function() { setEventTune('{{id}}', '{{tune_id}}') }"><i class="icon-file-alt"></i> {{ tune_id }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{%- endmacro %}
+
+<div class="alert alert-block" data-bind="visible: hw_unsaved_settings">
+    <strong>Warning: </strong>
+    You changed the Hardware Buzzer settings but have not yet saved your changes.
+    Please save your changes before testing any presets or files below to ensure it works properly.
+</div>
+
+{% for group in plugin_pwmbuzzer_supported_events -%}
+    <legend>{{ _(group.category) }}</legend>
+    {% for event in group.events -%}
+        {{ eventpicker(event.id, event.name) }}
+    {% endfor %}
+{% endfor %}

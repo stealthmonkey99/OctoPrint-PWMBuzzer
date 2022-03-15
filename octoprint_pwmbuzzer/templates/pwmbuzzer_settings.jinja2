@@ -1,0 +1,24 @@
+<form class="form-horizontal">
+    <h3>{{ _('M300 PWM Buzzer Plugin') }}</h3>
+
+    <div class="tabbable" style="padding-top: 10px">
+        <ul class="nav nav-pills">
+            <li class="active"><a href="#tabConfiguration" data-toggle="tab">{{ _('Configuration') }}</a></li>
+            <li><a href="#tabEvents" data-toggle="tab">{{ _('Events') }}</a></li>
+            <li><a href="#tabComposer" data-toggle="tab">{{ _('Composer') }}</a></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane active" id="tabConfiguration">
+                {%  include "settings/configuration.jinja2" %}
+            </div>
+
+            <div class="tab-pane" id="tabEvents">
+                {%  include "settings/events.jinja2" %}
+            </div>
+
+            <div class="tab-pane" id="tabComposer">
+                {%  include "settings/composer.jinja2" %}
+            </div>
+        </div>
+    </div>
+</form>
