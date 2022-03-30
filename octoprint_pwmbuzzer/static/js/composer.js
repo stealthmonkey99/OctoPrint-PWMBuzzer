@@ -231,23 +231,56 @@ function M300Composer(parent) {
         if (self.isEmpty()) { return; }
 
         var data = generateFile();
-        navigator.clipboard.writeText(data)
-            .then(function(result) {
-                new PNotify({
-                    title: "M300 PWM Buzzer Plugin",
-                    text: `Your M300 Composition has been copied to your clipboard.`,
-                    type: "success",
-                    hide: true
+        if (navigator && navigator.clipboard) {
+            // async, if connected locally or over https
+            navigator.clipboard.writeText(data)
+                .then(function(result) {
+                    new PNotify({
+                        title: "M300 PWM Buzzer Plugin",
+                        text: `Your M300 Composition has been copied to your clipboard.`,
+                        type: "success",
+                        hide: true
+                    });
+                })
+                .catch(function(error) {
+                    new PNotify({
+                        title: "M300 PWM Buzzer Plugin",
+                        text: `Failed to copy your composition to the clipboard: ${error}`,
+                        type: "error",
+                        hide: true
+                    });
                 });
-            })
-            .catch(function(error) {
+        } else {
+            // over http fall back to using execCommand instead
+            var element = document.createElement("textarea");
+            element.value = data;
+            element.style.opacity = 0;
+            element.style.width = 0;
+            element.style.height = 0;
+            document.body.appendChild(element);
+            element.focus();
+            element.select();
+            try {
+                if(document.execCommand("copy")) {
+                    new PNotify({
+                        title: "M300 PWM Buzzer Plugin",
+                        text: `Your M300 Composition has been copied to your clipboard.`,
+                        type: "success",
+                        hide: true
+                    });
+                } else {
+                    throw new Error("'copy' command was not successful.");
+                }
+            } catch (error) {
                 new PNotify({
                     title: "M300 PWM Buzzer Plugin",
                     text: `Failed to copy your composition to the clipboard: ${error}`,
                     type: "error",
                     hide: true
                 });
-            });
+            }
+            document.body.removeChild(element);            
+        }
     }
 
     generateGcodeHeader = function(filename = "Tune") {
