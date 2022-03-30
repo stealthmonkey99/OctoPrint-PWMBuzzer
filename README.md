@@ -1,10 +1,18 @@
 # OctoPrint-PWMBuzzer
 
-If your 3D printer doesn't have a speaker or natively support M300 commands for making beeps, this plugin is for you!
+If your 3D printer doesn't have a speaker or natively support [M300 commands](https://reprap.org/wiki/G-code#M300:_Play_beep_sound) for making beeps, this plugin is for you!
 
-You can use a simple (and cheap) passive buzzer, attach it to your Raspberry Pi's GPIO pins, and route M300 commands through it using Pulse-Width Modulation (PWM).  Simply connect your passive buzzer to a ground pin and the (+) side to a triggering GPIO pin, like GPIO16 (BCM).  You can find more details online in various tutorials ([example](https://github.com/stealthmonkey99/OctoPrint-PWMBuzzer)).
+You can use a simple (and cheap) passive buzzer, attach it to your Raspberry Pi's GPIO pins, and route M300 commands through it using [Pulse-Width Modulation (PWM)](https://en.wikipedia.org/wiki/Pulse-width_modulation).
 
 ## Setup
+
+### Hardware Setup
+
+To get started, simply connect your passive buzzer to a ground pin and the (+) side to a triggering GPIO pin, like GPIO16 (BCM).  You can find more details online in various tutorials ([example](https://github.com/stealthmonkey99/OctoPrint-PWMBuzzer)).
+
+![GPIO Wiring Diagram](/assets/img/plugins/pwmbuzzer/gpio-pwm-buzzer-diagram.png)
+
+### Plugin Setup
 
 Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
 or manually using this URL:
@@ -22,6 +30,8 @@ From here you can enable the passive buzzer and indicate which GPIO pin the (+) 
 Optionally, you might also choose to enable a software buzzer that simulates M300 commands in your web browser while you're actively connected to OctoPrint.  This has not been tested in all browsers yet, but you're welcome to try it out.
 
 Once you have chosen your buzzer configuration settings you can test them out (hardware and/or software) using the "Play Default Tone" button.  You can also set a default frequency and duration to be played any time an M300 command is encountered without parameters.
+
+> TROUBLESHOOTING: if you're not hearing the tone play on your speaker, make sure another plugin isn't attempting to configure the same GPIO pin.
 
 Don't forget to save your settings before you continue!
 
