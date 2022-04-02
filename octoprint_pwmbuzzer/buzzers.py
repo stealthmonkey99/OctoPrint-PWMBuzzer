@@ -27,7 +27,7 @@ class HardwareBuzzer(Buzzer):
     def __init__(self, enabled, pin, duty_cycle):
         self._logger = logging.getLogger(__name__+"."+self.__class__.__name__)
 
-        self.pwm = None
+        self._pwm = None
         self.set_settings(enabled, pin, duty_cycle)
 
     def Available():
@@ -35,11 +35,11 @@ class HardwareBuzzer(Buzzer):
 
     def set_settings(self, enabled, pin, duty_cycle):
         if enabled is not None:
-            self._enabled = enabled
+            self._enabled = bool(enabled)
         if pin is not None:
-            self._pin = pin
+            self._pin = int(pin)
         if duty_cycle is not None:
-            self._duty_cycle = duty_cycle
+            self._duty_cycle = int(duty_cycle)
 
         self._logger.info("HardwareBuzzer set to enabled {self._enabled} pin {self._pin} with duty cycle {self._duty_cycle}".format(**locals()))
 
@@ -53,17 +53,17 @@ class HardwareBuzzer(Buzzer):
         self._logger.debug("🎵 starting tone... {frequency}Hz (using BCM pin {self._pin} at {self._duty_cycle}% duty cycle)".format(**locals()))
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self._pin, GPIO.OUT)
-        self.pwm = GPIO.PWM(self._pin, frequency)
-        self.pwm.start(self._duty_cycle)
+        self._pwm = GPIO.PWM(self._pin, frequency)
+        self._pwm.start(self._duty_cycle)
 
     def stop(self):
         # Stop hardware tone regardless of feature enablement (don't leave a tone running)
         if not HardwareBuzzer.Available():
             return
 
-        if self.pwm is not None:
-            self.pwm.stop()
-            self.pwm = None
+        if self._pwm is not None:
+            self._pwm.stop()
+            self._pwm = None
             GPIO.cleanup()
         elif self._enabled:
             self._logger.warn("Hardware buzzer is enabled, but reference to PWM buzzer wasn't found when trying to stop the tone.")
@@ -77,7 +77,7 @@ class SoftwareBuzzer(Buzzer):
 
     def set_settings(self, enabled):
         if enabled is not None:
-            self._enabled = enabled
+            self._enabled = bool(enabled)
 
         self._logger.info("SoftwareBuzzer set to enabled {self._enabled}".format(**locals()))
 
