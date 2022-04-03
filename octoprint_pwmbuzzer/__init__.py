@@ -6,19 +6,14 @@ import octoprint.plugin
 import flask
 import re
 import time
-try:
-    import RPi.GPIO as GPIO
-    GPIO_ENABLED = True
-except ImportError:
-    GPIO_ENABLED = False
 
 from octoprint_pwmbuzzer import (
     settings,
     tunes,
     events,
+    tones,
+    buzzers
 )
-
-INTER_NOTE_PAUSE_DURATION = 0.01
 
 REGEX_LINE_HAS_M300_COMMAND = r"^[^;]*M300"
 REGEX_FILE_HAS_ANY_M300_COMMAND = r"[m|M]300"
@@ -38,17 +33,44 @@ class PwmBuzzerPlugin(
     def __init__(self):
         super(PwmBuzzerPlugin, self).__init__()
 
+        self.tones = tones.ToneQueue()
         self.hw_buzzer = None
+        self.sw_buzzer = None
 
     # Called when injections are complete
     def initialize(self):
-        if not GPIO_ENABLED:
+        if not buzzers.HardwareBuzzer.Available():
             self._logger.warn("GPIO could not be initialized.  Hardware buzzer will not be supported.")
 
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
         return settings.DEFAULT_SETTINGS
+
+    def on_settings_initialized(self):
+        self.hw_buzzer = buzzers.HardwareBuzzer(
+            self._settings.get_boolean(["hardware_tone", "enabled"]),
+            self._settings.get_int(["hardware_tone", "gpio_pin"]),
+            self._settings.get_int(["hardware_tone", "duty_cycle"])
+        )
+        self.sw_buzzer = buzzers.SoftwareBuzzer(
+            self.sendMessageToFrontend,
+            self._settings.get_boolean(["software_tone", "enabled"]),
+        )
+
+    def on_settings_save(self, data):
+        self.hw_buzzer.set_settings(
+            self._settings.get_boolean(["hardware_tone", "enabled"]),
+            self._settings.get_int(["hardware_tone", "gpio_pin"]),
+            self._settings.get_int(["hardware_tone", "duty_cycle"])
+        )
+        self.sw_buzzer.set_settings(
+            self._settings.get_boolean(["software_tone", "enabled"])
+        )
+        return octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+    def _get_active_buzzers(self):
+        return [buzzer for buzzer in [self.hw_buzzer, self.sw_buzzer] if buzzer is not None and buzzer.is_enabled()]
 
     ##~~ AssetPlugin mixin
 
@@ -149,8 +171,9 @@ class PwmBuzzerPlugin(
 
     def get_api_commands(self):
         return {
-            "test_tone": ["pin", "frequency", "duration"],
-            "test_tone_start": ["pin", "frequency"],
+            "settings_changed": ["hw", "sw"],
+            "test_tone": ["frequency", "duration"],
+            "test_tone_start": ["frequency"],
             "test_tone_stop": [],
             "test_tune": ["id"],
         }
@@ -158,33 +181,37 @@ class PwmBuzzerPlugin(
     def on_api_command(self, command, data):
         import flask
         if command == "test_tone":
-            pin = int(data["pin"])
             frequency = float(data["frequency"])
             duration = float(data["duration"])
-            duty_cycle = None
-            if "duty_cycle" in data:
-                duty_cycle = int(data["duty_cycle"])
-            hw_enabled = False
-            if "hw_enabled" in data:
-                hw_enabled = bool(data["hw_enabled"])
 
-            self.handle_tone_command(None, pin, frequency, duration, duty_cycle, hw_enabled)
+            self.handle_tone_command(None, frequency, duration)
         elif command == "test_tone_start":
-            pin = int(data["pin"])
             frequency = float(data["frequency"])
-            duty_cycle = None
-            if "duty_cycle" in data:
-                duty_cycle = int(data["duty_cycle"])
-            hw_enabled = False
-            if "hw_enabled" in data:
-                hw_enabled = bool(data["hw_enabled"])
 
-            self.tone_start(pin, frequency, duty_cycle, hw_enabled)
+            self._logger.debug("🎵 starting tone... {frequency}Hz".format(**locals()))
+            self.tones.add(tones.Tone(tones.ToneCommand.START, self._get_active_buzzers(), frequency))
         elif command == "test_tone_stop":
-            self.tone_stop()
+            self._logger.debug("🛑 tone stopped.")
+            self.tones.add(tones.Tone(tones.ToneCommand.STOP, self._get_active_buzzers()))
 
         elif command == "test_tune":
             self.play_tune(data["id"])
+
+        elif command == "settings_changed":
+            if self.hw_buzzer is not None:
+                self.hw_buzzer.set_settings(
+                    data["hw"].get("enabled"),
+                    data["hw"].get("pin"),
+                    data["hw"].get("duty_cycle")
+                )
+            if self.sw_buzzer is not None:
+                self.sw_buzzer.set_settings(
+                    data["sw"].get("enabled")
+                )
+
+    ##~~ Frontend Message Sending Helper
+    def sendMessageToFrontend(self, params):
+        self._plugin_manager.send_plugin_message(self._identifier, params)
 
     ##~~ GCode Phase hook
 
@@ -216,7 +243,7 @@ class PwmBuzzerPlugin(
             else:
                 self._logger.warn("Tried to play tune from '{id}' but no M300 commands were detected.".format(**locals()))
 
-    def handle_tone_command(self, cmd, pin = None, frequency = None, duration = None, duty_cycle = None, hw_enabled_override = False):
+    def handle_tone_command(self, cmd, frequency = None, duration = None):
         if frequency is None:
             match = re.search("S(\d+\.?\d*)", cmd, re.I)
             if match is not None:
@@ -225,70 +252,19 @@ class PwmBuzzerPlugin(
             match = re.search("P(\d+\.?\d*)", cmd, re.I)
             if match is not None:
                 duration = float(match.group(1))
+            else:
+                duration = self._settings.get_float(["default_tone", "duration"]) or settings.DEFAULT_SETTINGS["default_tone"]["duration"]
 
         if frequency is None or frequency > 0:
-            self.tone_play(pin, frequency, duration, duty_cycle, hw_enabled_override)
+            if frequency is None:
+                frequency = self._settings.get_float(["default_tone", "frequency"]) or settings.DEFAULT_SETTINGS["default_tone"]["frequency"]
+            self._logger.info("🎵 Intercepted a tone (M300): {frequency}Hz {duration}ms".format(**locals()))
+            commandType = tones.ToneCommand.PLAY
         else:
-            self.tone_pause(duration)
+            self._logger.info("🛑 Intercepted a pause (M300): {duration}ms".format(**locals()))
+            commandType = tones.ToneCommand.REST
 
-    def tone_pause(self, duration):
-        if duration is None:
-            duration = self._settings.get_float(["default_tone", "duration"]) or settings.DEFAULT_SETTINGS["default_tone"]["duration"]
-
-        self._logger.info("🛑 Intercepted a pause (M300): {duration}ms".format(**locals()))
-        time.sleep(duration / 1000)
-
-    def tone_play(self, pin, frequency, duration, duty_cycle, hw_enabled_override):
-        if pin is None:
-            pin = self._settings.get_int(["hardware_tone", "gpio_pin"])
-        if duty_cycle is None:
-            duty_cycle = self._settings.get_int(["hardware_tone", "duty_cycle"])
-        if frequency is None:
-            frequency = self._settings.get_float(["default_tone", "frequency"]) or settings.DEFAULT_SETTINGS["default_tone"]["frequency"]
-        if duration is None:
-            duration = self._settings.get_float(["default_tone", "duration"]) or settings.DEFAULT_SETTINGS["default_tone"]["duration"]
-
-        self._logger.info("🎵 Intercepted a tone (M300): {frequency}Hz {duration}ms (using BCM pin {pin} at {duty_cycle}% duty cycle)".format(**locals()))
-        self.tone_start(pin, frequency, duty_cycle, hw_enabled_override)
-        time.sleep(duration / 1000)
-        self.tone_stop()
-
-    def tone_start(self, pin, frequency, duty_cycle, hw_enabled_override = False):
-        # start the tone here
-        self._logger.debug("🎵 starting tone... {frequency}Hz (using BCM pin {pin} at {duty_cycle}% duty cycle)".format(**locals()))
-
-        if GPIO_ENABLED and (hw_enabled_override or self._settings.get_boolean(["hardware_tone", "enabled"])):
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(pin, GPIO.OUT)
-            self.hw_buzzer = GPIO.PWM(pin, frequency)
-            self.hw_buzzer.start(duty_cycle)
-
-        if self._settings.get_boolean(["software_tone", "enabled"]):
-            self._plugin_manager.send_plugin_message(self._identifier, {
-                "action": "software_tone_start",
-                "frequency": frequency,
-            })
-
-    def tone_stop(self):
-        # stop the tone here
-        self._logger.debug("🛑 tone stopped.")
-
-        if GPIO_ENABLED:
-            # Stop hardware tone regardless of feature enablement (don't leave a tone running)
-            if self.hw_buzzer is not None:
-                self.hw_buzzer.stop()
-                self.hw_buzzer = None
-                GPIO.cleanup()
-            elif self._settings.get_boolean(["hardware_tone", "enabled"]):
-                self._logger.warn("Hardware buzzer is enabled, but reference to PWM buzzer wasn't found when trying to stop the tone.")
-
-        # Stop software tone regardless of feature enablement (don't leave a tone running)
-        self._plugin_manager.send_plugin_message(self._identifier, {
-            "action": "software_tone_stop",
-        })
-
-        # Pause briefly between notes
-        time.sleep(INTER_NOTE_PAUSE_DURATION)
+        self.tones.add(tones.Tone(commandType, self._get_active_buzzers(), frequency, duration))
 
 __plugin_name__ = "M300 PWM Buzzer Plugin"
 

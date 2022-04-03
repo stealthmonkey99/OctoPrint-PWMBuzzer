@@ -27,12 +27,6 @@
 </div>
 {%- endmacro %}
 
-<div class="alert alert-block" data-bind="visible: hw_unsaved_settings">
-    <strong>Warning: </strong>
-    You changed the Hardware Buzzer settings but have not yet saved your changes.
-    Please save your changes before testing any presets or files below to ensure it works properly.
-</div>
-
 {% for group in plugin_pwmbuzzer_supported_events -%}
     <legend>{{ _(group.category) }}</legend>
     {% for event in group.events -%}

@@ -9,6 +9,7 @@ $(function() {
 
     const IS_PRESET_REGEX = /^:PRESET:.+/;
 
+    const COMMAND_SETTINGS_CHANGED = "settings_changed";
     const COMMAND_TEST_TONE = "test_tone";
     const COMMAND_TEST_TUNE = "test_tune";
     const COMMAND_TEST_TONE_START = "test_tone_start";
@@ -31,18 +32,6 @@ $(function() {
         self.default_frequency = ko.observable();
         self.default_duration = ko.observable();
         self.events = {};
-
-        self.hw_unsaved_settings = ko.computed(function() {
-            // access all of the observables on first pass to ensure the computed value updates on future changes
-            var curr_hw_enabled = self.hw_enabled();
-            var curr_hw_gpio_pin = self.hw_gpio_pin();
-            var curr_hw_duty_cycle = self.hw_duty_cycle();
-            return !!self.settings && (
-                self.settings.hardware_tone.enabled() !== curr_hw_enabled ||
-                self.settings.hardware_tone.gpio_pin() !== curr_hw_gpio_pin ||
-                self.settings.hardware_tone.duty_cycle() !== curr_hw_duty_cycle
-            );
-        }, self);
 
         self.sw_buzzer = new SoftwareBuzzer(self);
         self.composer = new M300Composer(self);
@@ -68,6 +57,7 @@ $(function() {
         /* Command Issuer for Test Tones */
 
         self.commands = {
+            SETTINGS_CHANGED: COMMAND_SETTINGS_CHANGED,
             TEST_TONE: COMMAND_TEST_TONE,
             TEST_TUNE: COMMAND_TEST_TUNE,
             TEST_TONE_START: COMMAND_TEST_TONE_START,
@@ -80,20 +70,14 @@ $(function() {
             switch (command) {
                 case COMMAND_TEST_TONE:
                     data = {
-                        pin: self.hw_gpio_pin(),
                         frequency: self.default_frequency(),
-                        duration: self.default_duration(),
-                        duty_cycle: self.hw_duty_cycle(),
-                        hw_enabled: self.hw_enabled()
+                        duration: self.default_duration()
                     };
                     break;
 
                 case COMMAND_TEST_TONE_START:
                     data = {
-                        pin: self.hw_gpio_pin(),
-                        frequency: options.frequency,
-                        duty_cycle: self.hw_duty_cycle(),
-                        hw_enabled: self.hw_enabled()
+                        frequency: options.frequency
                     }
                     break;
 
@@ -114,6 +98,21 @@ $(function() {
             OctoPrint.simpleApiCommand(PLUGIN_IDENTIFIER, command, data);
         }
         
+        /* Local Settings Changed Notifier */
+
+        self.unsaved_settings = ko.computed(function() {
+            OctoPrint.simpleApiCommand(PLUGIN_IDENTIFIER, self.commands.SETTINGS_CHANGED, {
+                hw: {
+                    enabled: self.hw_enabled(),
+                    pin: self.hw_gpio_pin(),
+                    duty_cycle: self.hw_duty_cycle()
+                },
+                sw: {
+                    enabled: self.sw_enabled()
+                }
+            });
+        });
+
         /* Message Handler for SW Tone playback */
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {

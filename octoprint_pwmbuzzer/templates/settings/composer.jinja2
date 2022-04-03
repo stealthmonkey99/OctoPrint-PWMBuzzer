@@ -15,12 +15,6 @@
     {% endfor %}
 {%- endmacro %}
 
-<div class="alert alert-block" data-bind="visible: hw_unsaved_settings">
-    <strong>Warning: </strong>
-    You changed the Hardware Buzzer settings but have not yet saved your changes.
-    Please save your changes before playing your composition below to ensure it works properly.
-</div>
-
 <div class="control-group" data-bind="using: composer">
     <div class="piano input-block-level">
         {{ pianooctave(3) }}
