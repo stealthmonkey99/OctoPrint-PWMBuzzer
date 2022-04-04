@@ -90,6 +90,7 @@ class PwmBuzzerPlugin(
             "supported_events": events.SUPPORTED_EVENT_CATEGORIES,
             "tune_presets": tunes.PRESETS,
             "tune_files": tune_files,
+            "needs_restart": self._get_m300_parser().needs_restart
         }
 
     def get_template_configs(self):

@@ -1,4 +1,5 @@
 from queue import SimpleQueue
+from threading import Thread
 import re
 import time
 import logging
@@ -8,12 +9,17 @@ REGEX_FILE_HAS_ANY_M300_COMMAND = r"[m|M]300"
 REGEX_FILE_HAS_UNCOMMENTED_M300_COMMAND = r"(^[^;]*[m|M]300)|(\n[^;]*[m|M]300)"
 M300_ANALYSIS_KEY = "m300analysis"
 
-FILE_PARSE_WARN_AFTER = 3
+FILE_PARSE_WARN_AFTER = 3.00
 
 class M300FileParsingQueue():
     def __init__(self, file_manager):
         self._logger = logging.getLogger(__name__+"."+self.__class__.__name__)
         self._file_manager = file_manager
+        self._queue = SimpleQueue()
+        self._thread = None
+
+        # if any files get queued for parsing we'll mark this True to indicate as such in the Events settings panel
+        self.needs_restart = False
 
     def _filter_m300_files(self, file):
         if file["type"] != "machinecode":
@@ -26,19 +32,42 @@ class M300FileParsingQueue():
 
         if M300_ANALYSIS_KEY in file and fileHash in file[M300_ANALYSIS_KEY]:
             return file[M300_ANALYSIS_KEY][fileHash]
+        else:
+            self.needs_restart = True
+            self._queue.put({
+                "id": id,
+                "fileHash": fileHash
+            })
+            self._run_queue()
 
-        path = self._file_manager.path_on_disk("local", id)
+    def _run_queue(self):
+        if self._thread is not None and self._thread.is_alive():
+            return
+
+        self._thread = Thread(target=self._worker)
+        self._thread.start()
+        self._logger.debug("forked a thread: {0}".format(self._thread.ident))
+
+    def _worker(self):
+        start_time = time.time()
         regex = re.compile(REGEX_FILE_HAS_ANY_M300_COMMAND)
-        with open(path, "r") as fileaccess:
-            text = fileaccess.read()
-            if re.search(regex, text):
-                regexu = re.compile(REGEX_FILE_HAS_UNCOMMENTED_M300_COMMAND)
-                if re.search(regexu, text):
-                    self._file_manager._storage_managers["local"].set_additional_metadata(path=id, key=M300_ANALYSIS_KEY, data=dict([(fileHash, True)]), merge=True)
-                    return True
+        regexu = re.compile(REGEX_FILE_HAS_UNCOMMENTED_M300_COMMAND)
+        while not self._queue.empty():
+            item = self._queue.get()
+            id = item["id"]
+            fileHash = item["fileHash"]
 
-        self._file_manager._storage_managers["local"].set_additional_metadata(path=id, key=M300_ANALYSIS_KEY, data=dict([(fileHash, False)]), merge=True)
-        return False
+            path = self._file_manager.path_on_disk("local", id)
+            has_m300 = False
+            with open(path, "r") as fileaccess:
+                text = fileaccess.read()
+                has_m300 = (re.search(regex, text) and re.search(regexu, text)) is not None
+            self._logger.debug("file '{0}' has M300: {1}".format(id, has_m300))
+            self._file_manager._storage_managers["local"].set_additional_metadata(path=id, key=M300_ANALYSIS_KEY, data=dict([(fileHash, has_m300)]), merge=True)
+
+        elapsed = time.time() - start_time
+        if elapsed > FILE_PARSE_WARN_AFTER:
+            self._logger.warn("Parsing .gcode files for M300 content took %s seconds at startup" % elapsed)
 
     def _recurse_files(self, folder, filelist = dict()):
         for key in folder["children"]:
@@ -48,7 +77,6 @@ class M300FileParsingQueue():
                 filelist[folder["children"][key]["path"]] = folder["children"][key]
 
     def get_tune_files(self):
-        start_time = time.time()
         tune_files = dict()
         all_files = self._file_manager._storage_managers["local"].list_files(filter=self._filter_m300_files)
         if all_files is not None:
@@ -57,10 +85,6 @@ class M300FileParsingQueue():
                     self._recurse_files(all_files[key], tune_files) 
                 else:
                     tune_files[all_files[key]["path"]] = all_files[key]
-
-        elapsed = time.time() - start_time
-        if elapsed > FILE_PARSE_WARN_AFTER:
-            self._logger.warn("Parsing .gcode files for M300 content took %s seconds at startup" % elapsed)
 
         return tune_files
 
