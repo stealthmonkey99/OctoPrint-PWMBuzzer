@@ -1,3 +1,4 @@
+from distutils.debug import DEBUG
 from queue import SimpleQueue
 from threading import Thread
 import re
@@ -20,6 +21,9 @@ class M300FileParsingQueue():
 
         # if any files get queued for parsing we'll mark this True to indicate as such in the Events settings panel
         self.needs_restart = False
+
+    def debug(self, enabled):
+        self._logger.setLevel(level=logging.DEBUG if enabled else logging.NOTSET)
 
     def _filter_m300_files(self, file):
         if file["type"] != "machinecode":
@@ -97,3 +101,24 @@ class M300FileParsingQueue():
             if re.search(REGEX_LINE_HAS_M300_COMMAND, line, re.I) is not None:
                 commands.append(line);
         return commands
+
+    def _recurse_clear(self, folder):
+        for key in folder["children"]:
+            if folder["children"][key]["type"] == "folder":
+               self._recurse_clear(folder["children"][key])
+            else:
+                self._file_manager._storage_managers["local"].remove_additional_metadata(path=folder["children"][key]["path"], key=M300_ANALYSIS_KEY)
+                self._logger.debug("Cleared M300 Analysis metadata for: %s" % folder["children"][key]["path"])
+
+    def debug_clear_metadata(self):
+        tune_files = dict()
+        all_files = self._file_manager._storage_managers["local"].list_files()
+        if all_files is not None:
+            for key in all_files:
+                if all_files[key]["type"] == "folder":
+                    self._recurse_clear(all_files[key])
+                else:
+                    self._file_manager._storage_managers["local"].remove_additional_metadata(path=all_files[key]["path"], key=M300_ANALYSIS_KEY)
+                    self._logger.debug("Cleared M300 Analysis metadata for: %s" % all_files[key]["path"])
+
+        return tune_files

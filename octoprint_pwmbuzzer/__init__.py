@@ -59,6 +59,12 @@ class PwmBuzzerPlugin(
             self._settings.get_boolean(["software_tone", "enabled"]),
         )
 
+        debugEnabled = self._settings.get_boolean(["debug"])
+        self.hw_buzzer.debug(debugEnabled)
+        self.sw_buzzer.debug(debugEnabled)
+        self._get_m300_parser().debug(debugEnabled)
+        self.tones.debug(debugEnabled)
+
     def on_settings_save(self, data):
         self.hw_buzzer.set_settings(
             self._settings.get_boolean(["hardware_tone", "enabled"]),
@@ -87,6 +93,7 @@ class PwmBuzzerPlugin(
         tune_files = self._get_m300_parser().get_tune_files()
 
         return {
+            "debug": self._settings.get_boolean(["debug"]),
             "supported_events": events.SUPPORTED_EVENT_CATEGORIES,
             "tune_presets": tunes.PRESETS,
             "tune_files": tune_files,
@@ -134,6 +141,7 @@ class PwmBuzzerPlugin(
             "test_tone_start": ["frequency"],
             "test_tone_stop": [],
             "test_tune": ["id"],
+            "debug_clear_metadata": []
         }
 
     def on_api_command(self, command, data):
@@ -147,10 +155,10 @@ class PwmBuzzerPlugin(
             frequency = float(data["frequency"])
 
             self._logger.debug("🎵 starting tone... {frequency}Hz".format(**locals()))
-            self.tones.add(tones.Tone(tones.ToneCommand.START, self._get_active_buzzers(), frequency))
+            self.tones.add(tones.Tone(tones.ToneCommand.START, self._get_active_buzzers(), frequency, debug = self._settings.get_boolean(["debug"])))
         elif command == "test_tone_stop":
             self._logger.debug("🛑 tone stopped.")
-            self.tones.add(tones.Tone(tones.ToneCommand.STOP, self._get_active_buzzers()))
+            self.tones.add(tones.Tone(tones.ToneCommand.STOP, self._get_active_buzzers(), debug = self._settings.get_boolean(["debug"])))
 
         elif command == "test_tune":
             self.play_tune(data["id"])
@@ -166,6 +174,12 @@ class PwmBuzzerPlugin(
                 self.sw_buzzer.set_settings(
                     data["sw"].get("enabled")
                 )
+        
+        elif command == "debug_clear_metadata":
+            if not self._settings.get_boolean(["debug"]):
+                self._logger.error("Tried to clear M300 metadata while not in debug mode")
+                return
+            self._get_m300_parser().debug_clear_metadata()
 
     ##~~ Frontend Message Sending Helper
     def sendMessageToFrontend(self, params):
@@ -216,7 +230,7 @@ class PwmBuzzerPlugin(
             self._logger.info("🛑 Intercepted a pause (M300): {duration}ms".format(**locals()))
             commandType = tones.ToneCommand.REST
 
-        self.tones.add(tones.Tone(commandType, self._get_active_buzzers(), frequency, duration))
+        self.tones.add(tones.Tone(commandType, self._get_active_buzzers(), frequency, duration, debug = self._settings.get_boolean(["debug"])))
 
 __plugin_name__ = "M300 PWM Buzzer Plugin"
 

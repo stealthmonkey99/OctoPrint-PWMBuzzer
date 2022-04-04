@@ -1,0 +1,7 @@
+<legend>{{ _('Debug Options') }}</legend>
+
+<div class="control-group">
+    <div class="controls">
+        <a class="btn btn-danger" href="#" data-bind="click: function() { issueToneCommand('debug_clear_metadata'); new PNotify({ title: 'Metadata cleared', text: 'Restart OctoPrint to repopulate it', type: 'warning', hide: true}); }"><i class="icon-remove"></i> {{ _('Clear File M300 Analysis Metadata') }}</a>
+    </div>
+</div>

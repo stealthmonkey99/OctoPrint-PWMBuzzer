@@ -13,8 +13,10 @@ class ToneCommand(Enum):
     REST = 3
 
 class Tone():
-    def __init__(self, command, buzzers = [], frequency = None, duration = None):
+    def __init__(self, command, buzzers = [], frequency = None, duration = None, debug = False):
         self._logger = logging.getLogger(__name__+"."+self.__class__.__name__)
+        self._logger.setLevel(level=logging.DEBUG if debug else logging.NOTSET)
+
         self.command = command
         self.buzzers = buzzers
         self.frequency = frequency
@@ -54,6 +56,9 @@ class ToneQueue():
         self._logger = logging.getLogger(__name__+"."+self.__class__.__name__)
         self._queue = SimpleQueue()
         self._thread = None
+
+    def debug(self, enabled):
+        self._logger.setLevel(level=logging.DEBUG if enabled else logging.NOTSET)
 
     def add(self, tone):
         self._logger.debug("adding to the queue: {0}".format(tone))

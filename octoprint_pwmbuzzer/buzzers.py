@@ -30,6 +30,9 @@ class HardwareBuzzer(Buzzer):
         self._pwm = None
         self.set_settings(enabled, pin, duty_cycle)
 
+    def debug(self, enabled):
+        self._logger.setLevel(level=logging.DEBUG if enabled else logging.NOTSET)
+
     def Available():
         return GPIO_AVAILABLE
 
@@ -74,6 +77,9 @@ class SoftwareBuzzer(Buzzer):
 
         self._sendMessageImplementation = messageFunc
         self.set_settings(enabled)
+
+    def debug(self, enabled):
+        self._logger.setLevel(level=logging.DEBUG if enabled else logging.NOTSET)
 
     def set_settings(self, enabled):
         if enabled is not None:
