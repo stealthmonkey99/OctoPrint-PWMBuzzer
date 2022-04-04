@@ -1,4 +1,3 @@
-from distutils.debug import DEBUG
 from queue import SimpleQueue
 from threading import Thread
 import re
@@ -6,11 +5,11 @@ import time
 import logging
 
 REGEX_LINE_HAS_M300_COMMAND = r"^[^;]*M300"
-REGEX_FILE_HAS_ANY_M300_COMMAND = r"[m|M]300"
-REGEX_FILE_HAS_UNCOMMENTED_M300_COMMAND = r"(^[^;]*[m|M]300)|(\n[^;]*[m|M]300)"
 M300_ANALYSIS_KEY = "m300analysis"
 
 FILE_PARSE_WARN_AFTER = 3.00
+FILE_PARSE_WAIT_TO_START = 30.0
+FILE_PARSE_YIELD_DELAY = 0.001
 
 class M300FileParsingQueue():
     def __init__(self, file_manager):
@@ -18,6 +17,7 @@ class M300FileParsingQueue():
         self._file_manager = file_manager
         self._queue = SimpleQueue()
         self._thread = None
+        self._has_m300_regex = re.compile(REGEX_LINE_HAS_M300_COMMAND, re.I)
 
         # if any files get queued for parsing we'll mark this True to indicate as such in the Events settings panel
         self.needs_restart = False
@@ -50,24 +50,26 @@ class M300FileParsingQueue():
 
         self._thread = Thread(target=self._worker)
         self._thread.start()
-        self._logger.debug("forked a thread: {0}".format(self._thread.ident))
+        self._logger.debug("forked a thread: {0} (delayed to start in {1}s)".format(self._thread.ident, FILE_PARSE_WAIT_TO_START))
 
     def _worker(self):
+        time.sleep(FILE_PARSE_WAIT_TO_START)
+
         start_time = time.time()
-        regex = re.compile(REGEX_FILE_HAS_ANY_M300_COMMAND)
-        regexu = re.compile(REGEX_FILE_HAS_UNCOMMENTED_M300_COMMAND)
+        processed = dict()
         while not self._queue.empty():
+            # yield to other threads first
+            time.sleep(FILE_PARSE_YIELD_DELAY)
+
             item = self._queue.get()
             id = item["id"]
             fileHash = item["fileHash"]
 
-            path = self._file_manager.path_on_disk("local", id)
-            has_m300 = False
-            with open(path, "r") as fileaccess:
-                text = fileaccess.read()
-                has_m300 = (re.search(regex, text) and re.search(regexu, text)) is not None
-            self._logger.debug("file '{0}' has M300: {1}".format(id, has_m300))
-            self._file_manager._storage_managers["local"].set_additional_metadata(path=id, key=M300_ANALYSIS_KEY, data=dict([(fileHash, has_m300)]), merge=True)
+            if id not in processed or processed[id] != fileHash:
+                has_m300 = self.file_has_tune(id)
+                self._logger.debug("file '{0}' contains M300: {1}".format(id, has_m300))
+                processed[id] = fileHash
+                self._file_manager._storage_managers["local"].set_additional_metadata(path=id, key=M300_ANALYSIS_KEY, data=dict([(fileHash, has_m300)]), merge=True)
 
         elapsed = time.time() - start_time
         if elapsed > FILE_PARSE_WARN_AFTER:
@@ -92,13 +94,21 @@ class M300FileParsingQueue():
 
         return tune_files
 
+    def file_has_tune(self, filename):
+        path = self._file_manager.path_on_disk("local", filename)
+        file = open(path, "r")
+        for line in file.readlines():
+            if re.search(self._has_m300_regex, line) is not None:
+                return True
+        return False
+
     def get_tune_from_file(self, filename):
         path = self._file_manager.path_on_disk("local", filename)
         file = open(path, "r")
         lines = file.readlines()
         commands = []
         for line in lines:
-            if re.search(REGEX_LINE_HAS_M300_COMMAND, line, re.I) is not None:
+            if re.search(self._has_m300_regex, line) is not None:
                 commands.append(line);
         return commands
 
