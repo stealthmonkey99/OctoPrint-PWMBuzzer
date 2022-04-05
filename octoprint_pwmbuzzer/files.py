@@ -96,20 +96,26 @@ class M300FileParsingQueue():
 
     def file_has_tune(self, filename):
         path = self._file_manager.path_on_disk("local", filename)
-        file = open(path, "r")
-        for line in file.readlines():
-            if re.search(self._has_m300_regex, line) is not None:
-                return True
+        try:
+            file = open(path, "r")
+            for line in file.readlines():
+                if re.search(self._has_m300_regex, line) is not None:
+                    return True
+        except Exception as e:
+            self._logger.warn("Error reading '{0}': {1}".format(filename, e))
         return False
 
     def get_tune_from_file(self, filename):
         path = self._file_manager.path_on_disk("local", filename)
-        file = open(path, "r")
-        lines = file.readlines()
         commands = []
-        for line in lines:
-            if re.search(self._has_m300_regex, line) is not None:
-                commands.append(line);
+        try:
+            file = open(path, "r")
+            lines = file.readlines()
+            for line in lines:
+                if re.search(self._has_m300_regex, line) is not None:
+                    commands.append(line);
+        except Exception as e:
+            self._logger.warn("Error reading '{0}': {1}".format(filename, e))
         return commands
 
     def _recurse_clear(self, folder):

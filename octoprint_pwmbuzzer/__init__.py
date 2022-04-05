@@ -208,6 +208,13 @@ class PwmBuzzerPlugin(
                 self._printer.commands(commands)
             else:
                 self._logger.warn("Tried to play tune from '{id}' but no M300 commands were detected.".format(**locals()))
+                self.sendMessageToFrontend({
+                    "action": "alert",
+                    "text": "Invalid tune '%s', no M300 commands detected - please check your plugin settings." % id,
+                    "type": "error",
+                    "hide": False,
+                    "launch_to_settings_tab": "#tabEvents"
+                })
 
     def handle_tone_command(self, cmd, frequency = None, duration = None):
         if frequency is None:

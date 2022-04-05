@@ -17,11 +17,14 @@ $(function() {
 
     const MSG_SW_TONE_START = "software_tone_start";
     const MSG_SW_TONE_STOP = "software_tone_stop";
+    const MSG_ALERT = "alert";
 
     function PwmBuzzerViewModel(parameters) {
         var self = this;
 
         self.settingsVM = parameters[0];
+        self.loginStateVM = parameters[1];
+        self.accessVM = parameters[2];
         self.settings = null;
 
         self.hw_enabled = ko.observable();
@@ -119,6 +122,31 @@ $(function() {
             if (plugin !== PLUGIN_IDENTIFIER) { return; }
 
             switch (data.action) {
+                case MSG_ALERT:
+                    var confirm = {
+                        buttons: []
+                    };
+                    if (!!data.launch_to_settings_tab && self.loginStateVM.hasPermission(self.accessVM.permissions.SETTINGS)) {
+                        confirm.confirm = true;
+                        confirm.buttons.push(
+                            {
+                                text: "Settings",
+                                click: function(notice) {
+                                    self.settingsVM.show(`#settings_plugin_${PLUGIN_IDENTIFIER}`);
+                                    $('ul.nav-pills a[href="' + data.launch_to_settings_tab + '"]', self.settingsVM.settingsDialog).tab("show");
+                                    notice.remove();
+                                }
+                            }
+                        );
+                    }
+                    new PNotify({
+                        title: "M300 PWM Buzzer Plugin",
+                        text: data.text || "",
+                        type: data.type || "success",
+                        hide: (data.hide !== undefined) ? !!data.hide : true,
+                        confirm
+                    });
+                    break;
                 case MSG_SW_TONE_START:
                     self.sw_buzzer.start(data.frequency);
                     break;
@@ -191,7 +219,7 @@ $(function() {
 
     OCTOPRINT_VIEWMODELS.push({
         construct: PwmBuzzerViewModel,
-        dependencies: [ "settingsViewModel" ],
+        dependencies: [ "settingsViewModel", "loginStateViewModel", "accessViewModel" ],
         elements: [ "#settings_plugin_pwmbuzzer" ]
     });
 });
