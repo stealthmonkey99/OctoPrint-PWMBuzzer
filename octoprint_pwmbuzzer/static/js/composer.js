@@ -121,13 +121,20 @@ function M300Composer(parent) {
 
             case "clear":
                 if (self.isEmpty()) { return; }
-
-                if (!!self.composition() && !confirm("Are you sure you want to clear your Gcode?")) {
-                    return;
-                }
     
-                self.data.removeAll();
-                self.backstack.removeAll();
+                new Promise(function(resolve, reject) {
+                    if (!self.composition()) {
+                        // empty, safe to continue
+                        resolve();
+                    } else {
+                        confirmPromise(resolve, reject, "M300 PWM Buzzer Plugin", "Are you sure you want to clear your Gcode?");
+                    }
+                })
+                .then(function() {
+                    self.data.removeAll();
+                    self.backstack.removeAll();    
+                })
+                .catch(function() { /* eat cancels */ });
 
                 break;
 
@@ -177,22 +184,30 @@ function M300Composer(parent) {
     self.save = function() {
         if (self.isEmpty()) { return; }
 
-        var blob = generateFile(true, true);
-        if (!blob) { return; }
-        var formData = new FormData();
-        var path = `${STORAGE_FOLDER}/${self.filename}`;
-        formData.append("file", blob, path);
-        OctoPrint.files.createFolder("local", STORAGE_FOLDER)
+        var path;
+        var formData;
+        generateFile(true, true)
+            .then(function(blob) {
+                if (!blob) { throw new Error("no data to store"); }
+                formData = new FormData();
+                path = `${STORAGE_FOLDER}/${self.filename}`;
+                formData.append("file", blob, path);
+                return OctoPrint.files.createFolder("local", STORAGE_FOLDER);
+            })
             .then(function() {
                 return OctoPrint.files.listForLocation("local", true);
             })
             .then(function(entries) {
-                if (OctoPrint.files.entryForPath(path, entries.files)
-                    && !confirm(`"${path}" already exists.  Are you sure you want to overwrite the file?`)
-                ) {
-                    throw new Error("file already exists, do not overwrite");
-                }
-
+                return new Promise(function(resolve, reject) {
+                    if (!OctoPrint.files.entryForPath(path, entries.files)) {
+                        // new file, safe to continue
+                        resolve();
+                    } else {
+                        confirmPromise(resolve, reject, self.filename, `"${path}" already exists.  Are you sure you want to overwrite the file?`);
+                    }
+                });
+            })
+            .then(function() {
                 return OctoPrint.files.upload("local", formData.get("file"));
             })
             .then(function() {
@@ -215,72 +230,109 @@ function M300Composer(parent) {
     self.download = function() {
         if (self.isEmpty()) { return; }
 
-        var blob = generateFile(true, true);
-        if (!blob) { return; }
-        var fileUrl = URL.createObjectURL(blob);
-        var element = document.createElement("a");
-        element.setAttribute("href", fileUrl);
-        element.setAttribute("download", self.filename);
-        element.style.display = "none";
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
+        generateFile(true, true)
+            .then(function(blob) {
+                if (!blob) { return; }
+                var fileUrl = URL.createObjectURL(blob);
+                var element = document.createElement("a");
+                element.setAttribute("href", fileUrl);
+                element.setAttribute("download", self.filename);
+                element.style.display = "none";
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+            });
     }
 
     self.copy = function() {
         if (self.isEmpty()) { return; }
 
-        var data = generateFile();
-        if (navigator && navigator.clipboard) {
-            // async, if connected locally or over https
-            navigator.clipboard.writeText(data)
-                .then(function(result) {
-                    new PNotify({
-                        title: "M300 PWM Buzzer Plugin",
-                        text: `Your M300 Composition has been copied to your clipboard.`,
-                        type: "success",
-                        hide: true
-                    });
-                })
-                .catch(function(error) {
-                    new PNotify({
-                        title: "M300 PWM Buzzer Plugin",
-                        text: `Failed to copy your composition to the clipboard: ${error}`,
-                        type: "error",
-                        hide: true
-                    });
-                });
-        } else {
-            // over http fall back to using execCommand instead
-            var element = document.createElement("textarea");
-            element.value = data;
-            element.style.opacity = 0;
-            element.style.width = 0;
-            element.style.height = 0;
-            document.body.appendChild(element);
-            element.focus();
-            element.select();
-            try {
-                if(document.execCommand("copy")) {
-                    new PNotify({
-                        title: "M300 PWM Buzzer Plugin",
-                        text: `Your M300 Composition has been copied to your clipboard.`,
-                        type: "success",
-                        hide: true
-                    });
+        generateFile()
+            .then(function(data) {
+                if (navigator && navigator.clipboard) {
+                    // async, if connected locally or over https
+                    navigator.clipboard.writeText(data)
+                        .then(function(result) {
+                            new PNotify({
+                                title: "M300 PWM Buzzer Plugin",
+                                text: `Your M300 Composition has been copied to your clipboard.`,
+                                type: "success",
+                                hide: true
+                            });
+                        })
+                        .catch(function(error) {
+                            new PNotify({
+                                title: "M300 PWM Buzzer Plugin",
+                                text: `Failed to copy your composition to the clipboard: ${error}`,
+                                type: "error",
+                                hide: true
+                            });
+                        });
                 } else {
-                    throw new Error("'copy' command was not successful.");
+                    // over http fall back to using execCommand instead
+                    var element = document.createElement("textarea");
+                    element.value = data;
+                    element.style.opacity = 0;
+                    element.style.width = 0;
+                    element.style.height = 0;
+                    document.body.appendChild(element);
+                    element.focus();
+                    element.select();
+                    try {
+                        if(document.execCommand("copy")) {
+                            new PNotify({
+                                title: "M300 PWM Buzzer Plugin",
+                                text: `Your M300 Composition has been copied to your clipboard.`,
+                                type: "success",
+                                hide: true
+                            });
+                        } else {
+                            throw new Error("'copy' command was not successful.");
+                        }
+                    } catch (error) {
+                        new PNotify({
+                            title: "M300 PWM Buzzer Plugin",
+                            text: `Failed to copy your composition to the clipboard: ${error}`,
+                            type: "error",
+                            hide: true
+                        });
+                    }
+                    document.body.removeChild(element);            
                 }
-            } catch (error) {
-                new PNotify({
-                    title: "M300 PWM Buzzer Plugin",
-                    text: `Failed to copy your composition to the clipboard: ${error}`,
-                    type: "error",
-                    hide: true
-                });
+            });
+    }
+
+    confirmPromise = function(resolve, reject, title, text) {
+        new PNotify({
+            title,
+            text,
+            type: "alert",
+            hide: false,
+            buttons: {
+                sticker: false,
+                closer: false
+            },
+            confirm: {
+                confirm: true,
+                buttons: [
+                    {
+                        text: "Yes",
+                        addClass: "btn-primary",
+                        click: function(notify) {
+                            notify.remove();
+                            resolve();
+                        }
+                    },
+                    {
+                        text: "Cancel",
+                        click: function(notify) {
+                            notify.remove();
+                            reject("file already exists, do not overwrite");
+                        }
+                    }
+                ]
             }
-            document.body.removeChild(element);            
-        }
+        });
     }
 
     generateGcodeHeader = function(filename = "Tune") {
@@ -304,26 +356,64 @@ function M300Composer(parent) {
     }
 
     generateFile = function(filenamePrompt = false, asBlob = false) {
-        var filename;
-        if (filenamePrompt) {
-            filename = prompt("What file name would you like to save your M300 Composition to?", self.filename);
-            if (!filename) {
-                return;
+        return new Promise(function(resolve, reject) {
+            if (!filenamePrompt) {
+                return resolve();
             }
 
-            if (filename.indexOf(".") < 0) {
-                filename += ".gcode";
+            new PNotify({
+                title: "M300 PWM Buzzer Plugin",
+                text: "What file name would you like to save your M300 Composition to?",
+                type: "info",
+                icon: "icon-file",
+                hide: false,
+                buttons: {
+                    sticker: false,
+                    closer: false
+                },
+                confirm: {
+                    prompt: true,
+                    prompt_default: self.filename,
+                    buttons: [
+                        {
+                            text: "Okay",
+                            addClass: "btn-primary",
+                            click: function(notify, result) {
+                                notify.remove();
+                                if (!result) {
+                                    reject("canceled");
+                                } else {
+                                    resolve(result);
+                                }
+                            }
+                        },
+                        {
+                            text: "Cancel",
+                            click: function(notify) {
+                                notify.remove();
+                                reject("canceled");
+                            }
+                        }
+                    ]
+                }
+            });
+        })
+        .then(function(filename) {
+            if (filename) {
+                if (filename.indexOf(".") < 0) {
+                    filename += ".gcode";
+                }
+
+                self.filename = filename;
             }
 
-            self.filename = filename;    
-        }
+            var data = generateGcodeHeader(filename).concat(self.data(), generateGcodeFooter()).join("\n");
 
-        var data = generateGcodeHeader(filename).concat(self.data(), generateGcodeFooter()).join("\n");
-
-        if (asBlob) {
-            return new Blob([data], { type: "plain/text" });
-        } else {
-            return data;
-        }
+            if (asBlob) {
+                return new Blob([data], { type: "plain/text" });
+            } else {
+                return data;
+            }
+        });
     }
 }
