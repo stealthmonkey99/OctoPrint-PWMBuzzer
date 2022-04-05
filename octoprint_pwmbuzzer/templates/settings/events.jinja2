@@ -27,6 +27,13 @@
 </div>
 {%- endmacro %}
 
+{% if plugin_pwmbuzzer_needs_restart -%}
+    <div class="alert alert-block">
+        <strong>Warning: </strong>
+        Files are being processed in the background.  If you don't see a .gcode file that contains M300 commands in one of the drop-downs below, wait a few minutes and then restart OctoPrint.
+    </div>
+{% endif %}
+
 {% for group in plugin_pwmbuzzer_supported_events -%}
     <legend>{{ _(group.category) }}</legend>
     {% for event in group.events -%}

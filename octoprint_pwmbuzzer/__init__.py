@@ -12,15 +12,9 @@ from octoprint_pwmbuzzer import (
     tunes,
     events,
     tones,
-    buzzers
+    buzzers,
+    files
 )
-
-REGEX_LINE_HAS_M300_COMMAND = r"^[^;]*M300"
-REGEX_FILE_HAS_ANY_M300_COMMAND = r"[m|M]300"
-REGEX_FILE_HAS_UNCOMMENTED_M300_COMMAND = r"(^[^;]*[m|M]300)|(\n[^;]*[m|M]300)"
-M300_ANALYSIS_KEY = "m300analysis"
-
-FILE_PARSE_WARN_AFTER = 3
 
 class PwmBuzzerPlugin(
     octoprint.plugin.SettingsPlugin,
@@ -36,6 +30,13 @@ class PwmBuzzerPlugin(
         self.tones = tones.ToneQueue()
         self.hw_buzzer = None
         self.sw_buzzer = None
+
+        self._m300_parser = None
+
+    def _get_m300_parser(self):
+        if self._m300_parser is None:
+            self._m300_parser = files.M300FileParsingQueue(self._file_manager)
+        return self._m300_parser
 
     # Called when injections are complete
     def initialize(self):
@@ -57,6 +58,12 @@ class PwmBuzzerPlugin(
             self.sendMessageToFrontend,
             self._settings.get_boolean(["software_tone", "enabled"]),
         )
+
+        debugEnabled = self._settings.get_boolean(["debug"])
+        self.hw_buzzer.debug(debugEnabled)
+        self.sw_buzzer.debug(debugEnabled)
+        self._get_m300_parser().debug(debugEnabled)
+        self.tones.debug(debugEnabled)
 
     def on_settings_save(self, data):
         self.hw_buzzer.set_settings(
@@ -82,57 +89,15 @@ class PwmBuzzerPlugin(
 
     ##~~ TemplatePlugin mixin
 
-    def _filter_m300_files(self, file):
-        if file["type"] != "machinecode":
-            return False
-
-        id = file["path"]
-        fileHash = "default"
-        if "hash" in file:
-            fileHash = file["hash"]
-
-        if M300_ANALYSIS_KEY in file and fileHash in file[M300_ANALYSIS_KEY]:
-            return file[M300_ANALYSIS_KEY][fileHash]
-
-        path = self._file_manager.path_on_disk("local", id)
-        regex = re.compile(REGEX_FILE_HAS_ANY_M300_COMMAND)
-        with open(path, "r") as fileaccess:
-            text = fileaccess.read()
-            if re.search(regex, text):
-                regexu = re.compile(REGEX_FILE_HAS_UNCOMMENTED_M300_COMMAND)
-                if re.search(regexu, text):
-                    self._file_manager._storage_managers["local"].set_additional_metadata(path=id, key=M300_ANALYSIS_KEY, data=dict([(fileHash, True)]), merge=True)
-                    return True
-
-        self._file_manager._storage_managers["local"].set_additional_metadata(path=id, key=M300_ANALYSIS_KEY, data=dict([(fileHash, False)]), merge=True)
-        return False
-
-    def _recurse_files(self, folder, filelist = dict()):
-        for key in folder["children"]:
-            if folder["children"][key]["type"] == "folder":
-               self._recurse_files(folder["children"][key], filelist)
-            else:
-                filelist[folder["children"][key]["path"]] = folder["children"][key]
-
     def get_template_vars(self):
-        start_time = time.time()
-        tune_files = dict()
-        all_files = self._file_manager._storage_managers["local"].list_files(filter=self._filter_m300_files)
-        if all_files is not None:
-            for key in all_files:
-                if all_files[key]["type"] == "folder":
-                    self._recurse_files(all_files[key], tune_files) 
-                else:
-                    tune_files[all_files[key]["path"]] = all_files[key]
-
-        elapsed = time.time() - start_time
-        if elapsed > FILE_PARSE_WARN_AFTER:
-            self._logger.warn("Parsing .gcode files for M300 content took %s seconds at startup" % elapsed)
+        tune_files = self._get_m300_parser().get_tune_files()
 
         return {
+            "debug": self._settings.get_boolean(["debug"]),
             "supported_events": events.SUPPORTED_EVENT_CATEGORIES,
             "tune_presets": tunes.PRESETS,
             "tune_files": tune_files,
+            "needs_restart": self._get_m300_parser().needs_restart
         }
 
     def get_template_configs(self):
@@ -176,6 +141,7 @@ class PwmBuzzerPlugin(
             "test_tone_start": ["frequency"],
             "test_tone_stop": [],
             "test_tune": ["id"],
+            "debug_clear_metadata": []
         }
 
     def on_api_command(self, command, data):
@@ -189,10 +155,10 @@ class PwmBuzzerPlugin(
             frequency = float(data["frequency"])
 
             self._logger.debug("🎵 starting tone... {frequency}Hz".format(**locals()))
-            self.tones.add(tones.Tone(tones.ToneCommand.START, self._get_active_buzzers(), frequency))
+            self.tones.add(tones.Tone(tones.ToneCommand.START, self._get_active_buzzers(), frequency, debug = self._settings.get_boolean(["debug"])))
         elif command == "test_tone_stop":
             self._logger.debug("🛑 tone stopped.")
-            self.tones.add(tones.Tone(tones.ToneCommand.STOP, self._get_active_buzzers()))
+            self.tones.add(tones.Tone(tones.ToneCommand.STOP, self._get_active_buzzers(), debug = self._settings.get_boolean(["debug"])))
 
         elif command == "test_tune":
             self.play_tune(data["id"])
@@ -208,6 +174,12 @@ class PwmBuzzerPlugin(
                 self.sw_buzzer.set_settings(
                     data["sw"].get("enabled")
                 )
+        
+        elif command == "debug_clear_metadata":
+            if not self._settings.get_boolean(["debug"]):
+                self._logger.error("Tried to clear M300 metadata while not in debug mode")
+                return
+            self._get_m300_parser().debug_clear_metadata()
 
     ##~~ Frontend Message Sending Helper
     def sendMessageToFrontend(self, params):
@@ -231,13 +203,7 @@ class PwmBuzzerPlugin(
                 return
             self._printer.commands(gcode)
         else:
-            path = self._file_manager.path_on_disk("local", id)
-            file = open(path, "r")
-            lines = file.readlines()
-            commands = []
-            for line in lines:
-                if re.search(REGEX_LINE_HAS_M300_COMMAND, line, re.I) is not None:
-                    commands.append(line);
+            commands = self._get_m300_parser().get_tune_from_file(id)
             if len(commands) > 0:
                 self._printer.commands(commands)
             else:
@@ -264,7 +230,7 @@ class PwmBuzzerPlugin(
             self._logger.info("🛑 Intercepted a pause (M300): {duration}ms".format(**locals()))
             commandType = tones.ToneCommand.REST
 
-        self.tones.add(tones.Tone(commandType, self._get_active_buzzers(), frequency, duration))
+        self.tones.add(tones.Tone(commandType, self._get_active_buzzers(), frequency, duration, debug = self._settings.get_boolean(["debug"])))
 
 __plugin_name__ = "M300 PWM Buzzer Plugin"
 
