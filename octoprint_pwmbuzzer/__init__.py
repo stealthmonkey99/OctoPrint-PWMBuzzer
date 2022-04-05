@@ -180,6 +180,12 @@ class PwmBuzzerPlugin(
                 self._logger.error("Tried to clear M300 metadata while not in debug mode")
                 return
             self._get_m300_parser().debug_clear_metadata()
+            self.sendMessageToFrontend({
+                "action": "alert",
+                "text": "Metadata cleared.  Restart OctoPrint to repopulate it.",
+                "type": "warning",
+                "restart": True
+            })
 
     ##~~ Frontend Message Sending Helper
     def sendMessageToFrontend(self, params):

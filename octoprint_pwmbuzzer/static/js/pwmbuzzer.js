@@ -139,6 +139,18 @@ $(function() {
                             }
                         );
                     }
+                    if (!!data.restart) {
+                        confirm.confirm = true;
+                        confirm.buttons.push(
+                            {
+                                text: "Restart",
+                                click: function(notice) {
+                                    OctoPrint.system.executeCommand("core", "restart");
+                                    notice.remove();
+                                }
+                            }
+                        );
+                    }
                     new PNotify({
                         title: "M300 PWM Buzzer Plugin",
                         text: data.text || "",

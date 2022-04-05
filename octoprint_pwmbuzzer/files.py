@@ -127,7 +127,6 @@ class M300FileParsingQueue():
                 self._logger.debug("Cleared M300 Analysis metadata for: %s" % folder["children"][key]["path"])
 
     def debug_clear_metadata(self):
-        tune_files = dict()
         all_files = self._file_manager._storage_managers["local"].list_files()
         if all_files is not None:
             for key in all_files:
@@ -136,5 +135,4 @@ class M300FileParsingQueue():
                 else:
                     self._file_manager._storage_managers["local"].remove_additional_metadata(path=all_files[key]["path"], key=M300_ANALYSIS_KEY)
                     self._logger.debug("Cleared M300 Analysis metadata for: %s" % all_files[key]["path"])
-
-        return tune_files
+        return
