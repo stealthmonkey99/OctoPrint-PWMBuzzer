@@ -45,6 +45,12 @@ const DEFAULT_FILENAME = "my-tune.gcode";
 
 const TEXTAREA_ID = "#m300-composition";
 
+const BACKSTACK_ACTIONS = {
+    INSERT: "I",
+    REVERSE: "R",
+    DIFF: "D"
+};
+
 function M300Composer(parent) {
     var self = this;
     var parentVM = parent;
@@ -55,6 +61,7 @@ function M300Composer(parent) {
     self.lineIsEmpty = ko.observable(true);
     self.caretTop = ko.observable(0);
     self.caretLeft = ko.observable(0);
+    self.operationstack = ko.observableArray([]);
     self.backstack = ko.observableArray([]);
     self.composition = ko.computed(function() {
         return self.data().join("\n");
@@ -64,6 +71,9 @@ function M300Composer(parent) {
     }, self);
     self.isBackstackEmpty = ko.computed(function() {
         return self.backstack().length < 1;
+    }, self);
+    self.isOpStackEmpty = ko.computed(function() {
+        return self.operationstack().length < 1;
     }, self);
     self.filename = DEFAULT_FILENAME;
 
@@ -119,15 +129,8 @@ function M300Composer(parent) {
     self.edit = function(action, event) {
         switch (action) {
             case "undo":
-                if (self.isEmpty()) { return; }
-
-                self.backstack.push(self.data.pop());
-                break;
-
             case "redo":
-                if (self.isBackstackEmpty()) { return; }
-
-                self.data.push(self.backstack.pop());
+                backstackAction(action === "undo");
                 break;
 
             case "pause":
@@ -146,8 +149,10 @@ function M300Composer(parent) {
                     }
                 })
                 .then(function() {
+                    var oldLines = self.data().slice();
                     self.data.removeAll();
-                    self.backstack.removeAll();    
+                    calculateDiff(oldLines, []);
+                    self.backstack.removeAll();
                     cursorAfterLine(0);
                 })
                 .catch(function() { /* eat cancels */ });
@@ -158,26 +163,35 @@ function M300Composer(parent) {
                 if (self.isEmpty()) { return; }
 
                 self.data.reverse();
+                commitOperation({
+                    operation: BACKSTACK_ACTIONS.REVERSE
+                });
                 cursorAfterLine(self.data().length);
                 break;
 
             case "cleanup":
                 if (self.isEmpty()) { return; }
 
+                var oldLines = self.data().slice();
                 // snap to multiples of QUARTER_NOTE_DURATION
                 var lines = self.data();
                 lines = lines.map(smartSnapLine);
                 self.data.removeAll();
                 self.data.push(...lines);
+                calculateDiff(oldLines, lines);
                 cursorAfterLine();
                 break;
 
             case "textarea-edit":
+                var oldLines = self.data().slice();
+                var newLines = [];
                 var lines = event.currentTarget.value.split("\n");
                 self.data.removeAll();
                 if (lines.length !== 1 || lines[0] !== "") {
+                    newLines = lines;
                     self.data.push(...lines);
                 }
+                calculateDiff(oldLines, newLines);
                 break;
 
             default:
@@ -305,6 +319,81 @@ function M300Composer(parent) {
                     document.body.removeChild(element);            
                 }
             });
+    }
+
+    /* Backstack Helpers */
+
+    commitOperation = function(operation) {
+        // if we're executing a manual operation (not a "redo" action off the backstack),
+        // clear the backstack since we cannot redo anymore from this point
+        self.backstack.removeAll();
+        self.operationstack.push(operation);
+    }
+
+    backstackAction = function(undo = true) {
+        if ((undo && self.isOpStackEmpty()) || (!undo && self.isBackstackEmpty())) {
+            return;
+        }
+
+        var stack = undo ? self.operationstack : self.backstack;
+        var antistack = undo ? self.backstack : self.operationstack;
+        var lastOp = stack.pop();
+        switch (lastOp.operation) {
+            case BACKSTACK_ACTIONS.INSERT:
+            case BACKSTACK_ACTIONS.DIFF:
+                // put back the previous set of data
+                revertDiff(lastOp, antistack);
+                break;
+
+            case BACKSTACK_ACTIONS.REVERSE:
+                // reverse the reverse
+                self.data.reverse();
+                antistack.push({
+                    operation: BACKSTACK_ACTIONS.REVERSE
+                });
+                cursorAfterLine(self.data().length);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    calculateDiff = function(oldLines, newLines) {
+        // dumb/potentially wasteful diff, but good enough for this tool :)
+        // ...just compares matching lines from top and bottom edges and considers the rest an insertion
+        var topOff = 0;
+        var botOff = 0;
+        for (topOff = 0; topOff < oldLines.length && topOff < newLines.length; topOff++) {
+            if (oldLines[topOff] !== newLines[topOff]) {
+                break;
+            }
+        }
+        var oldEndIndex = oldLines.length - 1;
+        var newEndIndex = newLines.length - 1;
+        for (botOff = 0; botOff <= oldEndIndex - topOff && botOff <= newEndIndex - topOff; botOff++) {
+            if (oldLines[oldEndIndex - botOff] !== newLines[newEndIndex - botOff]) {
+                break;
+            }
+        }
+        commitOperation({
+            operation: BACKSTACK_ACTIONS.DIFF,
+            index: topOff,
+            removed: oldLines.slice(topOff, oldLines.length - botOff),
+            insertLength: newLines.length - botOff - topOff
+        });
+    }
+
+    revertDiff = function(lastOp, antiStack) {
+        // remove inserted section and replace with what was previously removed
+        var removed = self.data.splice(lastOp.index, lastOp.insertLength, ...lastOp.removed);
+        antiStack.push({
+            operation: lastOp.operation,
+            index: lastOp.index,
+            removed,
+            insertLength: lastOp.removed.length
+        });
+        cursorAfterLine(lastOp.index + lastOp.removed.length);
     }
 
     /* File Handling Helpers */
@@ -458,6 +547,12 @@ function M300Composer(parent) {
             data = smartSnapLine(data);
         }
         var removed = self.data.splice(line, overwrite, data);
+        commitOperation({
+            operation: BACKSTACK_ACTIONS.INSERT,
+            index: line,
+            removed,
+            insertLength: 1
+        });
         self.line(self.line() + 1);
         cursorAfterLine();
     }

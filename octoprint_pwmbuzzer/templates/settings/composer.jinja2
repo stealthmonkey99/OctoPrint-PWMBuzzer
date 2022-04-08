@@ -29,7 +29,7 @@
         <textarea id="m300-composition" class="composition-text input-block-level" wrap="off" data-bind="value: composition, event: { change: function(_, event) { edit('textarea-edit', event) }, scroll: compScroll, keyup: compScroll, click: compScroll }" placeholder="Use the piano keys above to generate M300 gcode here"></textarea>
     </div>
     <div class="btn-group input-prepend input-append">
-        <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('undo', event) }, css: { disabled: isEmpty }"><i class="icon-undo"></i> {{ _('Undo') }}</a>
+        <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('undo', event) }, css: { disabled: isOpStackEmpty }"><i class="icon-undo"></i> {{ _('Undo') }}</a>
         <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('redo', event) }, css: { disabled: isBackstackEmpty }"><i class="icon-repeat"></i> {{ _('Redo') }}</a>
         <a class="btn btn-small" href="#" id="edit-pause" data-bind="click: function(_, event) { edit('pause', event) }"><i class="icon-pause"></i> {{ _('Insert Pause') }}</a>
         <a class="btn btn-small" href="#" id="edit-reverse" data-bind="click: function(_, event) { edit('reverse', event) }, css: { disabled: data().length < 2 }"><i class="icon-resize-vertical"></i> {{ _('Reverse') }}</a>
