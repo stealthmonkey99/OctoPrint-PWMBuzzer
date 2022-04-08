@@ -50,6 +50,7 @@ function M300Composer(parent) {
     var parentVM = parent;
 
     self.data = ko.observableArray([]);
+    self.cleanupLocked = ko.observable(false);
     self.backstack = ko.observableArray([]);
     self.composition = ko.computed(function() {
         return self.data().join("\n");
@@ -63,6 +64,9 @@ function M300Composer(parent) {
     self.filename = DEFAULT_FILENAME;
 
     appendData = function(data) {
+        if (self.cleanupLocked()) {
+            data = smartSnapLine(data);
+        }
         self.data.push(data);
         self.scrollCompositionToBottom();
     }
@@ -142,27 +146,14 @@ function M300Composer(parent) {
                 if (self.isEmpty()) { return; }
 
                 self.data.reverse();
+                break;
 
             case "cleanup":
                 if (self.isEmpty()) { return; }
 
                 // snap to multiples of QUARTER_NOTE_DURATION
                 var lines = self.data();
-                lines = lines.map(function(line) {
-                    var match = line.match(/M300.*\sP(\d+\.?\d*)/i);
-                    if (!match) { return line; }
-                    var intDur, dur;
-                    if (match[1] < QUARTER_NOTE_DURATION) {
-                        // try 16th notes for durations less than a quarter-note
-                        intDur = Math.max(1, Math.round(match[1] / (QUARTER_NOTE_DURATION / 4)));
-                        dur = intDur * (QUARTER_NOTE_DURATION / 4);
-                    } else {
-                        // look for nearest quarter-note duration
-                        intDur = Math.round(match[1] / QUARTER_NOTE_DURATION);
-                        dur = intDur * QUARTER_NOTE_DURATION;
-                    }
-                    return line.replace(/(M300.*\sP)(\d+\.?\d*)/i, `$1${dur}`);
-                });
+                lines = lines.map(smartSnapLine);
                 self.data.removeAll();
                 self.data.push(...lines);
                 break;
@@ -415,5 +406,21 @@ function M300Composer(parent) {
                 return data;
             }
         });
+    }
+
+    smartSnapLine = function(line) {
+        var match = line.match(/M300.*\sP(\d+\.?\d*)/i);
+        if (!match) { return line; }
+        var intDur, dur;
+        if (match[1] < QUARTER_NOTE_DURATION) {
+            // try 16th notes for durations less than a quarter-note
+            intDur = Math.max(1, Math.round(match[1] / (QUARTER_NOTE_DURATION / 4)));
+            dur = intDur * (QUARTER_NOTE_DURATION / 4);
+        } else {
+            // look for nearest quarter-note duration
+            intDur = Math.round(match[1] / QUARTER_NOTE_DURATION);
+            dur = intDur * QUARTER_NOTE_DURATION;
+        }
+        return line.replace(/(M300.*\sP)(\d+\.?\d*)/i, `$1${dur}`);
     }
 }

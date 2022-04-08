@@ -30,7 +30,12 @@
         <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('redo', event) }, css: { disabled: isBackstackEmpty }"><i class="icon-repeat"></i> {{ _('Redo') }}</a>
         <a class="btn btn-small" href="#" id="edit-pause" data-bind="click: function(_, event) { edit('pause', event) }"><i class="icon-pause"></i> {{ _('Insert Pause') }}</a>
         <a class="btn btn-small" href="#" id="edit-reverse" data-bind="click: function(_, event) { edit('reverse', event) }, css: { disabled: data().length < 2 }"><i class="icon-resize-vertical"></i> {{ _('Reverse') }}</a>
-        <a class="btn btn-small" href="#" id="edit-cleanup" data-bind="click: function(_, event) { edit('cleanup', event) }, css: { disabled: isEmpty }"><i class="icon-magic"></i> {{ _('Snap Durations') }}</a>
+        <div class="btn-group edit-cleanup-group">
+            <a class="btn btn-small" href="#" id="edit-cleanup" data-bind="click: function(_, event) { edit('cleanup', event) }, css: { disabled: isEmpty, active: cleanupLocked }"><i class="icon-magic"></i> {{ _('Snap Durations') }}</a>
+            <div class="btn btn-small edit-cleanup-lock" data-bind="css: { active: cleanupLocked }, click: function(_, event) { if(!!event.target.firstElementChild) { event.target.firstElementChild.click(); }; return true; }">
+                <input type="checkbox" class="edit-cleanup-lock-checkbox" data-bind="checked: cleanupLocked">
+            </div>
+        </div>
         <a class="btn btn-small" href="#" id="edit-clear" data-bind="click: function(_, event) { edit('clear', event) }, css: { disabled: isEmpty }"><i class="icon-trash"></i> {{ _('Clear') }}</a>
         <div class="btn-group gcode-actions-group">
             <a class="btn btn-small btn-primary" href="#" data-bind="click: play, css: { disabled: isEmpty() || !$parent.printerConnected() }"><i class="icon-music icon-white"></i> {{ _('Send Gcode to Printer') }}</a>

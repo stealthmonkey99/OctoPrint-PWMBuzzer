@@ -66,3 +66,23 @@
     font-size: small;
     overflow-y: scroll;
 }
+
+.btn#edit-cleanup {
+    border-right: none;
+}
+
+.edit-cleanup-lock {
+    display: inline-block;
+    border-left: none;
+    padding-left: 0px;
+    padding-right: 6px;
+    -webkit-border-radius: 0 !important;
+    -moz-border-radius: 0 !important;
+    border-radius: 0 !important;
+}
+
+input.edit-cleanup-lock-checkbox {
+    margin-top: 0;
+    margin-bottom: 2px;
+    margin-left: 6px;
+}
