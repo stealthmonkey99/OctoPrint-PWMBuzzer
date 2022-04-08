@@ -57,10 +57,24 @@
     box-shadow: inset -1px -1px 6px 2px #999;
 }
 
+.composition-block {
+    position: relative;
+    overflow: hidden;
+}
+
+.composition-caret {
+    position: absolute;
+    display: block;
+    margin-top: 4px;
+    margin-left: 6px;
+    color: #c0c0c0;
+}
+
 .composition-text {
-    margin-top: 10px;
     height: 180px;
     max-width: 693px;
+    padding-left: 20px;
+    padding-bottom: 20px;
     font-family: monospace;
     font-weight: bold;
     font-size: small;

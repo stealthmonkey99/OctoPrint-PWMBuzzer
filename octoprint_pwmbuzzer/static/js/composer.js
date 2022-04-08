@@ -51,6 +51,10 @@ function M300Composer(parent) {
 
     self.data = ko.observableArray([]);
     self.cleanupLocked = ko.observable(false);
+    self.line = ko.observable(0);
+    self.lineIsEmpty = ko.observable(true);
+    self.caretTop = ko.observable(0);
+    self.caretLeft = ko.observable(0);
     self.backstack = ko.observableArray([]);
     self.composition = ko.computed(function() {
         return self.data().join("\n");
@@ -63,13 +67,29 @@ function M300Composer(parent) {
     }, self);
     self.filename = DEFAULT_FILENAME;
 
-    appendData = function(data) {
-        if (self.cleanupLocked()) {
-            data = smartSnapLine(data);
+    /* Event Handlers */
+
+    self.compScroll = function (_, event) {
+        var textarea = $(TEXTAREA_ID);
+        var cursorStart = textarea.prop("selectionStart");
+        var atEnd = (cursorStart >= textarea.prop("value").length);
+        var atLineStart = (cursorStart === 0 || textarea.prop("value").substr(cursorStart - 1, 1) === "\n");
+        var atLineEnd = (atEnd || textarea.prop("value").substr(cursorStart, 1) === "\n");
+        self.lineIsEmpty(atLineStart && atLineEnd);
+
+        var line = textarea.prop("value").substr(0, cursorStart).split("\n").length - 1;
+        if (atLineEnd && !atLineStart) {
+            line++;
         }
-        self.data.push(data);
-        self.scrollCompositionToBottom();
+        self.line(line);
+
+        self.caretTop(parseInt(textarea.css("border-width")) + parseInt(textarea.css("padding-top")) + (line * parseInt(textarea.css("line-height"))) - textarea.prop("scrollTop"));
+        self.caretLeft(-1 * textarea.prop('scrollLeft'));
+
+        // let the event bubble up
+        return true;
     }
+    self.compScroll();  // initialize
 
     self.pianoKeyPress = function(note) {
         var compositionToneStart = new Date();
@@ -84,19 +104,10 @@ function M300Composer(parent) {
         parentVM.issueToneCommand(parentVM.commands.TEST_TONE_STOP);
 
         var duration = new Date() - startTime;
-        self.appendNote(note, duration);
-    }
-
-    self.appendNote = function(note, duration) {
-        appendData(`M300 S${FREQS[note]} P${duration} ;${note}`);
-    }
-
-    self.appendPause = function(duration) {
-        appendData(`M300 S0 P${duration}`);
-    }
-
-    self.scrollCompositionToBottom = function() {
-        $(TEXTAREA_ID).scrollTop($(TEXTAREA_ID)[0].scrollHeight);
+        // yield before inserting in case textarea was in the middle of edits
+        setTimeout(function() {
+            self.insertNote(note, duration);
+        }, 0);
     }
 
     self.play = function() {
@@ -120,7 +131,7 @@ function M300Composer(parent) {
                 break;
 
             case "pause":
-                self.appendPause(QUARTER_NOTE_DURATION);
+                self.insertPause(QUARTER_NOTE_DURATION);
                 break;
 
             case "clear":
@@ -137,6 +148,7 @@ function M300Composer(parent) {
                 .then(function() {
                     self.data.removeAll();
                     self.backstack.removeAll();    
+                    cursorAfterLine(0);
                 })
                 .catch(function() { /* eat cancels */ });
 
@@ -146,6 +158,7 @@ function M300Composer(parent) {
                 if (self.isEmpty()) { return; }
 
                 self.data.reverse();
+                cursorAfterLine(self.data().length);
                 break;
 
             case "cleanup":
@@ -156,6 +169,7 @@ function M300Composer(parent) {
                 lines = lines.map(smartSnapLine);
                 self.data.removeAll();
                 self.data.push(...lines);
+                cursorAfterLine();
                 break;
 
             case "textarea-edit":
@@ -169,7 +183,7 @@ function M300Composer(parent) {
             default:
                 break;
         }
-        self.scrollCompositionToBottom();
+        self.scrollCompositionCursorInView();
     }
 
     self.save = function() {
@@ -293,6 +307,8 @@ function M300Composer(parent) {
             });
     }
 
+    /* File Handling Helpers */
+
     confirmPromise = function(resolve, reject, title, text) {
         new PNotify({
             title,
@@ -406,6 +422,52 @@ function M300Composer(parent) {
                 return data;
             }
         });
+    }
+
+    /* Scrolling/Caret Helpers */
+
+    cursorAfterLine = function (line = self.line()) {
+        // find end of line and update after yielding to let the computed observable update
+        var nextCursor = 0;
+        for (let index = 0; index < line; index++) {
+            nextCursor += self.data()[index].length + 1;
+        }
+        setTimeout(function() {
+            $(TEXTAREA_ID).prop("selectionStart", nextCursor);
+            $(TEXTAREA_ID).prop("selectionEnd", nextCursor);    
+            self.compScroll();
+            self.scrollCompositionCursorInView();
+        }, 0);
+    }
+
+    self.scrollCompositionCursorInView = function() {
+        var textarea = $(TEXTAREA_ID);
+        if (self.caretTop() < 0) {
+            textarea.prop("scrollTop", textarea.prop("scrollTop") + self.caretTop());
+        } else if ((self.caretTop() + 20) > textarea.prop("clientHeight")) {
+            textarea.prop("scrollTop", textarea.prop("scrollTop") + self.caretTop() + 20 - textarea.prop("clientHeight"));
+        }
+    }
+
+    /* Composition Helpers */
+
+    insertData = function(data) {
+        var line = self.line();
+        var overwrite = self.lineIsEmpty() ? 1 : 0;
+        if (self.cleanupLocked()) {
+            data = smartSnapLine(data);
+        }
+        var removed = self.data.splice(line, overwrite, data);
+        self.line(self.line() + 1);
+        cursorAfterLine();
+    }
+
+    self.insertNote = function(note, duration) {
+        insertData(`M300 S${FREQS[note]} P${duration} ;${note}`);
+    }
+
+    self.insertPause = function(duration) {
+        insertData(`M300 S0 P${duration}`);
     }
 
     smartSnapLine = function(line) {

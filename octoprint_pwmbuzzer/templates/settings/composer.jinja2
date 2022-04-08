@@ -1,5 +1,5 @@
 {% macro pianokey(note, octave, isHalf) -%}
-    <button class="btn{{ ' halfstep' if isHalf }}" data-bind="click: function() {}, event: { mousedown: function() { pianoKeyPress('{{note}}{{octave}}') } }">{{ note }}</button>
+    <button class="btn{{ ' halfstep' if isHalf }}" data-bind="event: { mousedown: function() { pianoKeyPress('{{note}}{{octave}}') } }">{{ note }}</button>
 {%- endmacro %}
 {% macro pianokeys(note, octave) -%}
     <div class="key-group">
@@ -24,7 +24,10 @@
 </div>
 
 <div class="control-group" data-bind="using: composer">
-    <textarea id="m300-composition" class="composition-text input-block-level" data-bind="value: composition, event: { change: function(_, event) { edit('textarea-edit', event) } }" placeholder="Use the piano keys above to generate M300 gcode here"></textarea>
+    <div class="composition-block">
+        <div class="composition-caret icon-chevron-right" data-bind="style: { top: caretTop, left: caretLeft }"></div>
+        <textarea id="m300-composition" class="composition-text input-block-level" wrap="off" data-bind="value: composition, event: { change: function(_, event) { edit('textarea-edit', event) }, scroll: compScroll, keyup: compScroll, click: compScroll }" placeholder="Use the piano keys above to generate M300 gcode here"></textarea>
+    </div>
     <div class="btn-group input-prepend input-append">
         <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('undo', event) }, css: { disabled: isEmpty }"><i class="icon-undo"></i> {{ _('Undo') }}</a>
         <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('redo', event) }, css: { disabled: isBackstackEmpty }"><i class="icon-repeat"></i> {{ _('Redo') }}</a>
