@@ -4,7 +4,7 @@
     <div class="controls">
         <div class="btn-group gcode-actions-group">
             <a class="btn btn-warning" href="#" data-bind="click: function() { testEventTune('{{id}}') }"><i class="icon-music icon-white"></i> {{ _('Try it') }}</a>
-            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#" data-bind="css: { 'btn-danger': {{plugin_pwmbuzzer_tune_presets|list + plugin_pwmbuzzer_tune_files|list}}.indexOf(events.{{ id }}.id())  === -1 }">
                 {% for preset_id, preset in plugin_pwmbuzzer_tune_presets.items() -%}
                     <span data-bind="visible: events.{{ id }}.id() == '{{preset_id}}'">{{ preset.name }}</span>
                 {% endfor %}
@@ -13,13 +13,13 @@
             </a>
             <ul class="dropdown-menu">
                 {% for preset_id, preset in plugin_pwmbuzzer_tune_presets.items() -%}
-                    <li><a href="#" data-bind="click: function() { setEventTune('{{id}}', '{{preset_id}}') }">{{ preset.name }}</a></li>
+                    <li data-bind="css: { active: events.{{ id }}.id() == '{{preset_id}}' }"><a href="#" data-bind="click: function() { setEventTune('{{id}}', '{{preset_id}}') }">{{ preset.name }}</a></li>
                 {% endfor %}
                 {% if plugin_pwmbuzzer_tune_files|length > 0 -%}
                     <li class="divider"></li>
                 {% endif %}
                 {% for tune_id in plugin_pwmbuzzer_tune_files -%}
-                    <li><a href="#" data-bind="click: function() { setEventTune('{{id}}', '{{tune_id}}') }"><i class="icon-file-alt"></i> {{ tune_id }}</a></li>
+                    <li data-bind="css: { active: events.{{ id }}.id() == '{{tune_id}}' }"><a href="#" data-bind="click: function() { setEventTune('{{id}}', '{{tune_id}}') }"><i class="icon-file-alt"></i> {{ tune_id }}</a></li>
                 {% endfor %}
             </ul>
         </div>

@@ -180,6 +180,12 @@ class PwmBuzzerPlugin(
                 self._logger.error("Tried to clear M300 metadata while not in debug mode")
                 return
             self._get_m300_parser().debug_clear_metadata()
+            self.sendMessageToFrontend({
+                "action": "alert",
+                "text": "Metadata cleared.  Restart OctoPrint to repopulate it.",
+                "type": "warning",
+                "restart": True
+            })
 
     ##~~ Frontend Message Sending Helper
     def sendMessageToFrontend(self, params):
@@ -208,6 +214,13 @@ class PwmBuzzerPlugin(
                 self._printer.commands(commands)
             else:
                 self._logger.warn("Tried to play tune from '{id}' but no M300 commands were detected.".format(**locals()))
+                self.sendMessageToFrontend({
+                    "action": "alert",
+                    "text": "Invalid tune '%s', no M300 commands detected - please check your plugin settings." % id,
+                    "type": "error",
+                    "hide": False,
+                    "launch_to_settings_tab": "#tabEvents"
+                })
 
     def handle_tone_command(self, cmd, frequency = None, duration = None):
         if frequency is None:

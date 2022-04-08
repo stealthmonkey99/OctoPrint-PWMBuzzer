@@ -96,20 +96,26 @@ class M300FileParsingQueue():
 
     def file_has_tune(self, filename):
         path = self._file_manager.path_on_disk("local", filename)
-        file = open(path, "r")
-        for line in file.readlines():
-            if re.search(self._has_m300_regex, line) is not None:
-                return True
+        try:
+            file = open(path, "r")
+            for line in file.readlines():
+                if re.search(self._has_m300_regex, line) is not None:
+                    return True
+        except Exception as e:
+            self._logger.warn("Error reading '{0}': {1}".format(filename, e))
         return False
 
     def get_tune_from_file(self, filename):
         path = self._file_manager.path_on_disk("local", filename)
-        file = open(path, "r")
-        lines = file.readlines()
         commands = []
-        for line in lines:
-            if re.search(self._has_m300_regex, line) is not None:
-                commands.append(line);
+        try:
+            file = open(path, "r")
+            lines = file.readlines()
+            for line in lines:
+                if re.search(self._has_m300_regex, line) is not None:
+                    commands.append(line);
+        except Exception as e:
+            self._logger.warn("Error reading '{0}': {1}".format(filename, e))
         return commands
 
     def _recurse_clear(self, folder):
@@ -121,7 +127,6 @@ class M300FileParsingQueue():
                 self._logger.debug("Cleared M300 Analysis metadata for: %s" % folder["children"][key]["path"])
 
     def debug_clear_metadata(self):
-        tune_files = dict()
         all_files = self._file_manager._storage_managers["local"].list_files()
         if all_files is not None:
             for key in all_files:
@@ -130,5 +135,4 @@ class M300FileParsingQueue():
                 else:
                     self._file_manager._storage_managers["local"].remove_additional_metadata(path=all_files[key]["path"], key=M300_ANALYSIS_KEY)
                     self._logger.debug("Cleared M300 Analysis metadata for: %s" % all_files[key]["path"])
-
-        return tune_files
+        return
