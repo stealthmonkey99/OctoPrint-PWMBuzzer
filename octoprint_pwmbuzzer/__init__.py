@@ -66,6 +66,7 @@ class PwmBuzzerPlugin(
         self.tones.debug(debugEnabled)
 
     def on_settings_save(self, data):
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self.hw_buzzer.set_settings(
             self._settings.get_boolean(["hardware_tone", "enabled"]),
             self._settings.get_int(["hardware_tone", "gpio_pin"]),
@@ -74,7 +75,6 @@ class PwmBuzzerPlugin(
         self.sw_buzzer.set_settings(
             self._settings.get_boolean(["software_tone", "enabled"])
         )
-        return octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
     def _get_active_buzzers(self):
         return [buzzer for buzzer in [self.hw_buzzer, self.sw_buzzer] if buzzer is not None and buzzer.is_enabled()]
