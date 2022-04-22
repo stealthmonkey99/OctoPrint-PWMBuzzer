@@ -152,7 +152,6 @@ function M300Composer(parent) {
                     var oldLines = self.data().slice();
                     self.data.removeAll();
                     calculateDiff(oldLines, []);
-                    self.backstack.removeAll();
                     cursorAfterLine(0);
                 })
                 .catch(function() { /* eat cancels */ });
