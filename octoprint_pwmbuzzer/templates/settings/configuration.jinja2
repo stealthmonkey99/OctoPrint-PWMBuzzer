@@ -63,6 +63,15 @@
     </div>
 </div>
 
+<div class="control-group">
+    <div class="controls">
+        <label class="checkbox">
+            <input type="checkbox" data-bind="checked: hw_suppress_m300"> {{ _('Suppress M300 command passthrough') }}
+            <span class="help-block">{{ _('If your printer supports M300 commands but you want to use a passive buzzer instead (or just disable them), use this option to prevent the M300 commands from being sent to the printer.') }}</span>
+        </label>
+    </div>
+</div>
+
 <legend>{{ _('Software Buzzer') }}</legend>
 
 <div class="control-group">

@@ -30,6 +30,7 @@ $(function() {
         self.hw_enabled = ko.observable();
         self.hw_gpio_pin = ko.observable();
         self.hw_duty_cycle = ko.observable();
+        self.hw_suppress_m300 = ko.observable();
         self.sw_enabled = ko.observable();
         self.sw_volume = ko.observable();
         self.default_frequency = ko.observable();
@@ -108,7 +109,8 @@ $(function() {
                 hw: {
                     enabled: self.hw_enabled(),
                     pin: self.hw_gpio_pin(),
-                    duty_cycle: self.hw_duty_cycle()
+                    duty_cycle: self.hw_duty_cycle(),
+                    suppress_m300: self.hw_suppress_m300()
                 },
                 sw: {
                     enabled: self.sw_enabled()
@@ -182,6 +184,7 @@ $(function() {
             self.settings.hardware_tone.enabled(self.hw_enabled());
             self.settings.hardware_tone.gpio_pin(self.hw_gpio_pin());
             self.settings.hardware_tone.duty_cycle(self.hw_duty_cycle());
+            self.settings.hardware_tone.suppress_m300_passthrough(self.hw_suppress_m300());
             self.settings.default_tone.frequency(self.default_frequency());
             self.settings.default_tone.duration(self.default_duration());
             self.settings.software_tone.enabled(self.sw_enabled());
@@ -208,6 +211,7 @@ $(function() {
             self.hw_enabled(self.settings.hardware_tone.enabled());
             self.hw_gpio_pin(self.settings.hardware_tone.gpio_pin());
             self.hw_duty_cycle(self.settings.hardware_tone.duty_cycle());
+            self.hw_suppress_m300(self.settings.hardware_tone.suppress_m300_passthrough());
             self.default_frequency(self.settings.default_tone.frequency());
             self.default_duration(self.settings.default_tone.duration());
             self.sw_enabled(self.settings.software_tone.enabled());

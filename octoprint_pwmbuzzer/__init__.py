@@ -32,6 +32,7 @@ class PwmBuzzerPlugin(
         self.sw_buzzer = None
 
         self._m300_parser = None
+        self._suppress_m300 = False
 
     def _get_m300_parser(self):
         if self._m300_parser is None:
@@ -58,6 +59,7 @@ class PwmBuzzerPlugin(
             self.sendMessageToFrontend,
             self._settings.get_boolean(["software_tone", "enabled"]),
         )
+        self._suppress_m300 = self._settings.get_boolean(["hardware_tone", "suppress_m300_passthrough"])
 
         debugEnabled = self._settings.get_boolean(["debug"])
         self.hw_buzzer.debug(debugEnabled)
@@ -66,6 +68,7 @@ class PwmBuzzerPlugin(
         self.tones.debug(debugEnabled)
 
     def on_settings_save(self, data):
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self.hw_buzzer.set_settings(
             self._settings.get_boolean(["hardware_tone", "enabled"]),
             self._settings.get_int(["hardware_tone", "gpio_pin"]),
@@ -74,7 +77,7 @@ class PwmBuzzerPlugin(
         self.sw_buzzer.set_settings(
             self._settings.get_boolean(["software_tone", "enabled"])
         )
-        return octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+        self._suppress_m300 = self._settings.get_boolean(["hardware_tone", "suppress_m300_passthrough"])
 
     def _get_active_buzzers(self):
         return [buzzer for buzzer in [self.hw_buzzer, self.sw_buzzer] if buzzer is not None and buzzer.is_enabled()]
@@ -174,6 +177,7 @@ class PwmBuzzerPlugin(
                 self.sw_buzzer.set_settings(
                     data["sw"].get("enabled")
                 )
+            self._suppress_m300 = bool(data["hw"].get("suppress_m300"))
         
         elif command == "debug_clear_metadata":
             if not self._settings.get_boolean(["debug"]):
@@ -193,9 +197,11 @@ class PwmBuzzerPlugin(
 
     ##~~ GCode Phase hook
 
-    def sent_m300(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+    def sending_m300(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         if gcode and gcode.upper() == "M300":
             self.handle_tone_command(cmd)
+            if self._suppress_m300:
+                return None,  # don't send it on to the printer, return 1-tuple of None to suppress
 
     ##~~ Tone Helpers
 
@@ -256,5 +262,5 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sent_m300
+        "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.sending_m300
     }
