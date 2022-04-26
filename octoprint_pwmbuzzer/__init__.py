@@ -206,19 +206,16 @@ class PwmBuzzerPlugin(
     ##~~ Tone Helpers
 
     def play_tune(self, id):
-        if id is None or id == ":PRESET:NONE":
+        if id is None or id == tunes.NO_SELECTION_ID:
             return
 
         if id in tunes.PRESETS:
             gcode = tunes.PRESETS[id]["gcode"]
             if gcode is None:
                 return
-            self._printer.commands(gcode)
         else:
-            commands = self._get_m300_parser().get_tune_from_file(id)
-            if len(commands) > 0:
-                self._printer.commands(commands)
-            else:
+            gcode = self._get_m300_parser().get_tune_from_file(id)
+            if len(gcode) <= 0:
                 self._logger.warn("Tried to play tune from '{id}' but no M300 commands were detected.".format(**locals()))
                 self.sendMessageToFrontend({
                     "action": "alert",
@@ -227,6 +224,17 @@ class PwmBuzzerPlugin(
                     "hide": False,
                     "launch_to_settings_tab": "#tabEvents"
                 })
+                return
+
+        if self._printer.is_closed_or_error():
+            # if the printer is disconnected, just queue up the commands for playback off-printer
+            for cmd in gcode:
+                self.handle_tone_command(cmd)
+
+        else:
+            # ...otherwise, send the commands to the printer
+            self._printer.commands(gcode)
+
 
     def handle_tone_command(self, cmd, frequency = None, duration = None):
         if frequency is None:
