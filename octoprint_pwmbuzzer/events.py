@@ -1,20 +1,34 @@
-SUPPORTED_EVENTS = ["Startup", "Shutdown", "ClientOpened", "Connected", "PrintStarted", "PrintDone", "PrintFailed", "PrintPaused", "PrintResumed", "PrintCancelled", "FileAdded", "FileRemoved"]
+SUPPORTED_EVENTS = ["Startup", "Shutdown", "ClientOpened", "ClientClosed", "Connected", "Disconnected", "PrintStarted", "PrintDone", "PrintFailed", "PrintPaused", "PrintResumed", "PrintCancelled", "FileAdded", "FileRemoved"]
+
+OFFLINE_EVENTS = ["Startup", "Shutdown", "Connected", "Disconnected"]
 
 SUPPORTED_EVENT_CATEGORIES = [
     {
         "category": "System Events",
         "events": [
             {
-                "id": "Connected",
-                "name": "Startup (Printer Connected)"
+                "id": "Startup",
+                "name": "Startup"
             },
             {
                 "id": "Shutdown",
                 "name": "Shutdown"
             },
             {
+                "id": "Connected",
+                "name": "Printer Connected"
+            },
+            {
+                "id": "Disconnected",
+                "name": "Printer Disconnected"
+            },
+            {
                 "id": "ClientOpened",
                 "name": "OctoPrint Client Connected"
+            },
+            {
+                "id": "ClientClosed",
+                "name": "OctoPrint Client Disconnected"
             }
         ]
     },

@@ -15,9 +15,12 @@ DEFAULT_SETTINGS = {
         "duration": 1000,
     },
     "events": {
-        "Connected": ":PRESET:SLIDEUP",
+        "Startup": ":PRESET:SLIDEUP",
         "Shutdown": ":PRESET:SLIDEDOWN",
+        "Connected": ":PRESET:NONE",
+        "Disconnected": ":PRESET:NONE",
         "ClientOpened": ":PRESET:NONE",
+        "ClientClosed": ":PRESET:NONE",
         "PrintStarted": ":PRESET:NONE",
         "PrintDone": ":PRESET:LG",
         "PrintFailed": ":PRESET:SIREN",

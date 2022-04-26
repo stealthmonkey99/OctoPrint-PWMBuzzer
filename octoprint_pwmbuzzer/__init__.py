@@ -114,7 +114,7 @@ class PwmBuzzerPlugin(
             if (tune is None or tune == tunes.NO_SELECTION_ID or (payload is not None and "path" in payload and payload["path"] == tune)):
                 return
             self._logger.info("✅ '{event}' event fired, playing tune '{tune}'".format(**locals()))
-            self.play_tune(tune)
+            self.play_tune(tune, event in events.OFFLINE_EVENTS)
 
     ##~~ Softwareupdate hook
 
@@ -205,7 +205,7 @@ class PwmBuzzerPlugin(
 
     ##~~ Tone Helpers
 
-    def play_tune(self, id):
+    def play_tune(self, id, force_play_offline = False):
         if id is None or id == tunes.NO_SELECTION_ID:
             return
 
@@ -226,7 +226,7 @@ class PwmBuzzerPlugin(
                 })
                 return
 
-        if self._printer.is_closed_or_error():
+        if self._printer.is_closed_or_error() or force_play_offline:
             # if the printer is disconnected, just queue up the commands for playback off-printer
             for cmd in gcode:
                 self.handle_tone_command(cmd)
