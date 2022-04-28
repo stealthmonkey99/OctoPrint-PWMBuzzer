@@ -106,7 +106,7 @@ class PwmBuzzerPlugin(
     def get_template_configs(self):
         return []
 
-    ##~~ EventHandlerPlugin
+    ##~~ EventHandlerPlugin mixin
 
     def on_event(self, event, payload):
         if event in events.SUPPORTED_EVENTS:
@@ -114,7 +114,7 @@ class PwmBuzzerPlugin(
             if (tune is None or tune == tunes.NO_SELECTION_ID or (payload is not None and "path" in payload and payload["path"] == tune)):
                 return
             self._logger.info("✅ '{event}' event fired, playing tune '{tune}'".format(**locals()))
-            self.play_tune(tune, event in events.OFFLINE_EVENTS)
+            self.play_tune(tune, event in events.OFFLINE_EVENTS, event in events.BLOCKING_EVENTS)
 
     ##~~ Softwareupdate hook
 
@@ -205,7 +205,7 @@ class PwmBuzzerPlugin(
 
     ##~~ Tone Helpers
 
-    def play_tune(self, id, force_play_offline = False):
+    def play_tune(self, id, force_play_offline = False, wait_for_playback = False):
         if id is None or id == tunes.NO_SELECTION_ID:
             return
 
@@ -235,6 +235,8 @@ class PwmBuzzerPlugin(
             # ...otherwise, send the commands to the printer
             self._printer.commands(gcode)
 
+        if wait_for_playback:
+            self.tones.wait()
 
     def handle_tone_command(self, cmd, frequency = None, duration = None):
         if frequency is None:
