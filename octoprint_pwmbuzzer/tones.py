@@ -5,6 +5,7 @@ import time
 import logging
 
 INTER_NOTE_PAUSE_DURATION = 0.01
+MAX_SHUTDOWN_WAIT = 3.0
 
 class ToneCommand(Enum):
     STOP = 0
@@ -64,6 +65,16 @@ class ToneQueue():
         self._logger.debug("adding to the queue: {0}".format(tone))
         self._queue.put(tone)
         self._runQueue()
+
+    def wait(self):
+        start_time = time.time()
+
+        if self._thread is not None:
+            self._thread.join(MAX_SHUTDOWN_WAIT)
+
+        elapsed = time.time() - start_time
+        status = "warning: thread still running" if self._thread is not None and self._thread.is_alive() else "thread completed"
+        self._logger.debug("waited %.4fsec for ToneQueue to execute (%s)" % (elapsed, status))
 
     def _runQueue(self):
         if self._thread is not None and self._thread.is_alive():

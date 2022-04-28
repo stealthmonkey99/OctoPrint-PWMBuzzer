@@ -2,6 +2,8 @@ SUPPORTED_EVENTS = ["Startup", "Shutdown", "ClientOpened", "ClientClosed", "Conn
 
 OFFLINE_EVENTS = ["Startup", "Shutdown", "Connected", "Disconnected"]
 
+BLOCKING_EVENTS = ["Shutdown"]
+
 SUPPORTED_EVENT_CATEGORIES = [
     {
         "category": "System Events",
