@@ -36,6 +36,7 @@ $(function() {
         self.default_frequency = ko.observable();
         self.default_duration = ko.observable();
         self.events = {};
+        self.printerConnected = ko.observable(false);
 
         self.sw_buzzer = new SoftwareBuzzer(self);
         self.composer = new M300Composer(self);
@@ -196,6 +197,16 @@ $(function() {
 
         self.onSettingsHidden = function() {
             self.resetLocalSettings();
+        }
+
+        self.onSettingsShown = function() {
+            OctoPrint.printer.getFullState()
+                .then(function(result) {
+                    self.printerConnected(!result.state.flags.closedOrError);
+                })
+                .catch(function(error) {
+                    self.printerConnected(false);
+                });
         }
 
         self.initSettings = function() {

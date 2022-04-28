@@ -33,7 +33,7 @@
         <a class="btn btn-small" href="#" id="edit-cleanup" data-bind="click: function(_, event) { edit('cleanup', event) }, css: { disabled: isEmpty }"><i class="icon-magic"></i> {{ _('Snap Durations') }}</a>
         <a class="btn btn-small" href="#" id="edit-clear" data-bind="click: function(_, event) { edit('clear', event) }, css: { disabled: isEmpty }"><i class="icon-trash"></i> {{ _('Clear') }}</a>
         <div class="btn-group gcode-actions-group">
-            <a class="btn btn-small btn-primary" href="#" data-bind="click: play, css: { disabled: isEmpty }"><i class="icon-music icon-white"></i> {{ _('Send Gcode to Printer') }}</a>
+            <a class="btn btn-small btn-primary" href="#" data-bind="click: play, css: { disabled: isEmpty() || !$parent.printerConnected() }"><i class="icon-music icon-white"></i> {{ _('Send Gcode to Printer') }}</a>
             <a class="btn btn-small btn-primary dropdown-toggle" data-toggle="dropdown" href="#" data-bind="css: { disabled: isEmpty }"><span class="caret"></span></a>
             <ul class="dropdown-menu dropdown-menu-right">
                 <li><a class="btn-small" href="#" data-bind="click: save, css: { disabled: isEmpty }"><i class="icon-save"></i> {{ _('Save Gcode File') }}</a></li>

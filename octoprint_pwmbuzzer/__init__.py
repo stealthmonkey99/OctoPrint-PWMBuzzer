@@ -114,7 +114,7 @@ class PwmBuzzerPlugin(
             if (tune is None or tune == tunes.NO_SELECTION_ID or (payload is not None and "path" in payload and payload["path"] == tune)):
                 return
             self._logger.info("✅ '{event}' event fired, playing tune '{tune}'".format(**locals()))
-            self.play_tune(tune)
+            self.play_tune(tune, event in events.OFFLINE_EVENTS)
 
     ##~~ Softwareupdate hook
 
@@ -205,20 +205,17 @@ class PwmBuzzerPlugin(
 
     ##~~ Tone Helpers
 
-    def play_tune(self, id):
-        if id is None or id == ":PRESET:NONE":
+    def play_tune(self, id, force_play_offline = False):
+        if id is None or id == tunes.NO_SELECTION_ID:
             return
 
         if id in tunes.PRESETS:
             gcode = tunes.PRESETS[id]["gcode"]
             if gcode is None:
                 return
-            self._printer.commands(gcode)
         else:
-            commands = self._get_m300_parser().get_tune_from_file(id)
-            if len(commands) > 0:
-                self._printer.commands(commands)
-            else:
+            gcode = self._get_m300_parser().get_tune_from_file(id)
+            if len(gcode) <= 0:
                 self._logger.warn("Tried to play tune from '{id}' but no M300 commands were detected.".format(**locals()))
                 self.sendMessageToFrontend({
                     "action": "alert",
@@ -227,6 +224,17 @@ class PwmBuzzerPlugin(
                     "hide": False,
                     "launch_to_settings_tab": "#tabEvents"
                 })
+                return
+
+        if self._printer.is_closed_or_error() or force_play_offline:
+            # if the printer is disconnected, just queue up the commands for playback off-printer
+            for cmd in gcode:
+                self.handle_tone_command(cmd)
+
+        else:
+            # ...otherwise, send the commands to the printer
+            self._printer.commands(gcode)
+
 
     def handle_tone_command(self, cmd, frequency = None, duration = None):
         if frequency is None:

@@ -96,7 +96,7 @@ function M300Composer(parent) {
     }
 
     self.play = function() {
-        if (self.isEmpty()) { return; }
+        if (self.isEmpty() || !parentVM.printerConnected()) { return; }
 
         OctoPrint.control.sendGcode(self.data());
     }
