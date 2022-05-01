@@ -1,0 +1,39 @@
+<div data-bind="using: midiFile">
+
+    <legend>{{ _('Importing') }} <span data-bind="text: filename"></span></legend>
+
+    <div class="control-group">
+        <label class="control-label">{{ _('Options:') }}</label>
+        <div class="controls">
+            <label class="checkbox"><input type="checkbox" data-bind="checked: options.displayTitle"> Display Title (M117 command)</label>
+            <label class="checkbox"><input type="checkbox" data-bind="checked: options.displayTrackText"> Display Track Text (M117 commands)</label>
+            <label class="checkbox"><input type="checkbox" data-bind="checked: options.skipInitialRest"> Ignore rest before first note in channel</label>
+            <label>
+                If chords are played: 
+                <select class="input-medium" data-bind="value: options.firstNoteWins, options: [{ text: 'first note wins', value: true }, { text: 'last note wins', value: false }], optionsText: 'text', optionsValue: 'value'"></select>
+            </label>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label">{{ _('Channel:') }}</label>
+        <div class="controls">
+            <select class="input-xlarge" data-bind="value: selectedChannel, options: channels, optionsText: function(channel) { return channel.getDescription() }, optionsCaption: 'Select a channel to import...'"></select>
+        </div>
+    </div>
+
+    <div class="control-group" data-bind="if: selectedChannel()">
+        <label class="control-label">{{ _('Tracks:') }}</label>
+        <div class="controls" data-bind="foreach: Array.from(selectedChannel().tracks)">
+            <label class="checkbox"><input type="checkbox" data-bind="checked: $parent.selectedChannel().selectedTracks, checkedValue: $data"> <span data-bind="text: getDescription()"></span></label>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="controls">
+            <a class="btn btn-small" href="#" data-bind="click: function(_, event) { actions.import() }, css: { disabled: !selectedChannel() || selectedChannel().selectedTracks().length < 1 }"><i class="icon-upload-alt"></i> {{ _('Import') }}</a>
+            <a class="btn btn-small" href="#" data-bind="click: function(_, event) { actions.cancel() }"><i class="icon-remove"></i> {{ _('Cancel') }}</a>
+        </div>
+    </div>
+
+</div>

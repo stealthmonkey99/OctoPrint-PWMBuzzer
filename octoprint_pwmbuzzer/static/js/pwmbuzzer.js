@@ -41,6 +41,8 @@ $(function() {
         self.sw_buzzer = new SoftwareBuzzer(self);
         self.composer = new M300Composer(self);
 
+        self.is_debug = false;
+
         /* Configuration panel Helpers */
 
         self.testTone = function() {
@@ -241,6 +243,8 @@ $(function() {
                 }
                 self.events[event].id(self.settings.events[event]());
             }
+
+            self.is_debug = self.settings.debug && self.settings.debug();
         }
     }
 

@@ -86,7 +86,7 @@ class PwmBuzzerPlugin(
 
     def get_assets(self):
         return {
-            "js": ["js/pwmbuzzer.js", "js/softwarebuzzer.js", "js/composer.js"],
+            "js": ["js/pwmbuzzer.js", "js/softwarebuzzer.js", "js/composer.js", "js/midi/constants.js", "js/midi/filehandler.js", "js/midi/timings.js", "js/midi/importer.js", "js/midi/track.js", "js/midi/channel.js"],
             "css": ["css/pwmbuzzer.css"]
         }
 

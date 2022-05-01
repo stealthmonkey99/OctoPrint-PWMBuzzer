@@ -15,39 +15,47 @@
     {% endfor %}
 {%- endmacro %}
 
-<div class="control-group" data-bind="using: composer">
-    <div class="piano input-block-level">
-        {{ pianooctave(3) }}
-        {{ pianooctave(4) }}
-        {{ pianooctave(5) }}
-    </div>
-</div>
+<div data-bind="using: composer">
 
-<div class="control-group" data-bind="using: composer">
-    <div class="composition-block">
-        <div class="composition-caret icon-chevron-right" data-bind="style: { top: caretTop, left: caretLeft }"></div>
-        <textarea id="m300-composition" class="composition-text input-block-level" wrap="off" data-bind="value: composition, event: { change: function(_, event) { edit('textarea-edit', event) }, scroll: compScroll, keyup: compScroll, click: compScroll }" placeholder="Use the piano keys above to generate M300 gcode here"></textarea>
+    <div class="control-group">
+        <div class="piano input-block-level">
+            {{ pianooctave(3) }}
+            {{ pianooctave(4) }}
+            {{ pianooctave(5) }}
+        </div>
     </div>
-    <div class="btn-group input-prepend input-append">
-        <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('undo', event) }, css: { disabled: isOpStackEmpty }"><i class="icon-undo"></i> {{ _('Undo') }}</a>
-        <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('redo', event) }, css: { disabled: isBackstackEmpty }"><i class="icon-repeat"></i> {{ _('Redo') }}</a>
-        <a class="btn btn-small" href="#" id="edit-pause" data-bind="click: function(_, event) { edit('pause', event) }"><i class="icon-pause"></i> {{ _('Insert Pause') }}</a>
-        <a class="btn btn-small" href="#" id="edit-reverse" data-bind="click: function(_, event) { edit('reverse', event) }, css: { disabled: data().length < 2 }"><i class="icon-resize-vertical"></i> {{ _('Reverse') }}</a>
-        <div class="btn-group edit-cleanup-group">
-            <a class="btn btn-small" href="#" id="edit-cleanup" data-bind="click: function(_, event) { edit('cleanup', event) }, css: { disabled: isEmpty, active: cleanupLocked }"><i class="icon-magic"></i> {{ _('Snap Durations') }}</a>
-            <div class="btn btn-small edit-cleanup-lock" data-bind="css: { active: cleanupLocked }, click: function(_, event) { if(!!event.target.firstElementChild) { event.target.firstElementChild.click(); }; return true; }">
-                <input type="checkbox" class="edit-cleanup-lock-checkbox" data-bind="checked: cleanupLocked">
+
+    <div class="control-group">
+        <div class="composition-block">
+            <div class="composition-caret icon-chevron-right" data-bind="style: { top: caretTop, left: caretLeft }"></div>
+            <textarea id="m300-composition" class="composition-text input-block-level" wrap="off" data-bind="value: composition, event: { change: function(_, event) { edit('textarea-edit', event) }, scroll: compScroll, keyup: compScroll, click: compScroll }" placeholder="Use the piano keys above to generate M300 gcode here"></textarea>
+        </div>
+        <div class="btn-group input-prepend input-append">
+            <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('undo', event) }, css: { disabled: isOpStackEmpty }"><i class="icon-undo"></i> {{ _('Undo') }}</a>
+            <a class="btn btn-small" href="#" data-bind="click: function(_, event) { edit('redo', event) }, css: { disabled: isBackstackEmpty }"><i class="icon-repeat"></i> {{ _('Redo') }}</a>
+            <a class="btn btn-small" href="#" id="edit-pause" data-bind="click: function(_, event) { edit('pause', event) }"><i class="icon-pause"></i> {{ _('Insert Pause') }}</a>
+            <a class="btn btn-small" href="#" id="edit-reverse" data-bind="click: function(_, event) { edit('reverse', event) }, css: { disabled: data().length < 2 }"><i class="icon-resize-vertical"></i> {{ _('Reverse') }}</a>
+            <div class="btn-group edit-cleanup-group">
+                <a class="btn btn-small" href="#" id="edit-cleanup" data-bind="click: function(_, event) { edit('cleanup', event) }, css: { disabled: isEmpty, active: cleanupLocked }"><i class="icon-magic"></i> {{ _('Snap Durations') }}</a>
+                <div class="btn btn-small edit-cleanup-lock" data-bind="css: { active: cleanupLocked }, click: function(_, event) { if(!!event.target.firstElementChild) { event.target.firstElementChild.click(); }; return true; }">
+                    <input type="checkbox" class="edit-cleanup-lock-checkbox" data-bind="checked: cleanupLocked">
+                </div>
+            </div>
+            <a class="btn btn-small" href="#" id="edit-clear" data-bind="click: function(_, event) { edit('clear', event) }, css: { disabled: isEmpty }"><i class="icon-trash"></i> {{ _('Clear') }}</a>
+            <div class="btn-group gcode-actions-group">
+                <a class="btn btn-small btn-primary" href="#" data-bind="click: play, css: { disabled: isEmpty }"><i class="icon-music icon-white"></i> {{ _('Send Gcode to Printer') }}</a>
+                <a class="btn btn-small btn-primary dropdown-toggle" data-toggle="dropdown" href="#"><span class="caret"></span></a>
+                <ul class="dropdown-menu dropdown-menu-right">
+                    <li><a class="btn-small" href="#" data-bind="click: save, css: { disabled: isEmpty }"><i class="icon-save"></i> {{ _('Save Gcode File') }}</a></li>
+                    <li><a class="btn-small" href="#" data-bind="click: download, css: { disabled: isEmpty }"><i class="icon-download-alt"></i> {{ _('Download Gcode') }}</a></li>
+                    <li><a class="btn-small" href="#" data-bind="click: copy, css: { disabled: isEmpty }"><i class="icon-paste"></i> {{ _('Copy Gcode to Clipboard') }}</a></li>
+                    <li><a class="btn-small" href="#" data-bind="click: importFromMidi"><i class="icon-upload-alt"></i> {{ _('Import MIDI file') }}</a></li>
+                </ul>
             </div>
         </div>
-        <a class="btn btn-small" href="#" id="edit-clear" data-bind="click: function(_, event) { edit('clear', event) }, css: { disabled: isEmpty }"><i class="icon-trash"></i> {{ _('Clear') }}</a>
-        <div class="btn-group gcode-actions-group">
-            <a class="btn btn-small btn-primary" href="#" data-bind="click: play, css: { disabled: isEmpty() || !$parent.printerConnected() }"><i class="icon-music icon-white"></i> {{ _('Send Gcode to Printer') }}</a>
-            <a class="btn btn-small btn-primary dropdown-toggle" data-toggle="dropdown" href="#" data-bind="css: { disabled: isEmpty }"><span class="caret"></span></a>
-            <ul class="dropdown-menu dropdown-menu-right">
-                <li><a class="btn-small" href="#" data-bind="click: save, css: { disabled: isEmpty }"><i class="icon-save"></i> {{ _('Save Gcode File') }}</a></li>
-                <li><a class="btn-small" href="#" data-bind="click: download, css: { disabled: isEmpty }"><i class="icon-download-alt"></i> {{ _('Download Gcode') }}</a></li>
-                <li><a class="btn-small" href="#" data-bind="click: copy, css: { disabled: isEmpty }"><i class="icon-paste"></i> {{ _('Copy Gcode to Clipboard') }}</a></li>
-            </ul>
-        </div>
+    </div>
+
+    <div data-bind="if: midiFile">
+        {% include "settings/importmidi.jinja2" %}
     </div>
 </div>
