@@ -409,6 +409,6 @@ function MidiGcodeBuilder() {
         if (!Array.isArray(texts)) {
             texts = [texts];
         }
-        texts.forEach(function(text){ self.lines.push(`; ${text}`); });
+        texts.forEach(function(text){ self.lines.push(`;${text}`); });
     }
 }

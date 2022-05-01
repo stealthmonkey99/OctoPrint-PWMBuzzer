@@ -1,4 +1,4 @@
-const FREQS = {
+FREQS = {
                 "C-": 8.18,     "C#-": 8.66,    "D-": 9.18,     "D#-": 9.72,    "E-": 10.30,    "F-": 10.91,    "F#-": 11.56,   "G-": 12.25,    "G#-": 12.98,   "A-": 13.75,    "A#-": 14.57,   "B-": 15.43,
                 "C0": 16.352,   "C#0": 17.324,  "D0": 18.354,   "D#0": 19.445,  "E0": 20.602,   "F0": 21.827,   "F#0": 23.125,  "G0": 24.5,     "G#0": 25.957,  "A0": 27.5,     "A#0": 29.135,  "B0": 30.868,
                 "C1": 32.703,   "C#1": 34.648,  "D1": 36.708,   "D#1": 38.891,  "E1": 41.203,   "F1": 43.654,   "F#1": 46.249,  "G1": 48.999,   "G#1": 51.913,  "A1": 55,       "A#1": 58.27,   "B1": 61.735,
@@ -12,15 +12,19 @@ const FREQS = {
                 "C9": 8372,     "C#9": 8869.8,  "D9": 9397.3,   "D#9": 9956.1,  "E9": 10548,    "F9": 11175,    "F#9": 11840,   "G9": 12544
 };
 
-const QUARTER_NOTE_DURATION = 200;
+QUARTER_NOTE_DURATION = 200;
 
-const STORAGE_FOLDER = "M300 Compositions";
+STORAGE_FOLDER = "M300 Compositions";
 
-const DEFAULT_FILENAME = "my-tune.gcode";
+DEFAULT_FILENAME = "my-tune.gcode";
 
-const TEXTAREA_ID = "#m300-composition";
+TEXTAREA_ID = "#m300-composition";
 
-const BACKSTACK_ACTIONS = {
+OPEN_FILE_ID = "#m300-open-file";
+
+M300_ANALYSIS_KEY = "m300analysis";
+
+BACKSTACK_ACTIONS = {
     INSERT: "I",
     REVERSE: "R",
     DIFF: "D"
@@ -217,6 +221,105 @@ function M300Composer(parent) {
                     text: `File was not be saved at this time.`,
                     type: "error",
                     hide: true
+                });
+            });
+    }
+
+    self.open = function() {
+        OctoPrint.files.listForLocation("local", true)
+            .then(function(entries) {
+                var recurseFolder = function(children, list = []) {
+                    children.forEach(function(file) {
+                        if (file.type === "folder") {
+                            recurseFolder(file.children, list);
+                        } else {
+                            list.push({
+                                path: file.path,
+                                hasM300: !!file.hash && file.hasOwnProperty(M300_ANALYSIS_KEY) && file[M300_ANALYSIS_KEY].hasOwnProperty(file.hash) && !!file[M300_ANALYSIS_KEY][file.hash],
+                                file
+                            });
+                        }
+                    });
+                    return list;
+                }
+                return recurseFolder(entries.files);
+            })
+            .then(function(fileList) {
+                var options = "";
+                fileList.forEach(function(item, index) {
+                    options += `<option value="${index}">${item.hasM300 ? "&#9835; " : ""}${item.path}</option>`;
+                });
+                return new Promise(function(resolve, reject) {
+                    new PNotify({
+                        title: "M300 PWM Buzzer Plugin",
+                        text: `Select a file to open: <select id="m300-open-file">${options}</select>`,
+                        type: "info",
+                        icon: "icon-file",
+                        hide: false,
+                        buttons: {
+                            sticker: false,
+                            closer: false
+                        },
+                        confirm: {
+                            confirm: true,
+                            buttons: [
+                                {
+                                    text: "Open",
+                                    addClass: "btn-primary",
+                                    click: function(notify) {
+                                        var fileIndex = $(OPEN_FILE_ID).prop("value");
+                                        notify.remove();
+                                        resolve(fileList[fileIndex].file);
+                                    }
+                                },
+                                {
+                                    text: "Cancel",
+                                    click: function(notify) {
+                                        notify.remove();
+                                        reject(null);
+                                    }
+                                }
+                            ]
+                        }
+                    });
+                });
+            })
+            .then(function(file) {
+                self.filename = file.name;
+                return $.ajax({
+                    url: file.refs.download,
+                    type: "GET",
+                    dataType: "text",
+                    contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+                    traditional: true,
+                    processData: true,
+                    headers: {
+                        "Pragma": "no-cache",
+                        "Expires": "0",
+                        "Cache-Control": "no-cache, no-store, must-revalidate"
+                    },
+                    beforeSend: function() {
+                        $('#loading_modal').modal('show');
+                    }
+                })
+            })
+            .then(function(data) {
+                lines = data.split("\n");
+                var oldLines = self.data().slice();
+                self.data.removeAll();
+                self.data.push(...lines);
+                calculateDiff(oldLines, lines);
+                cursorAfterLine(0);
+                $('#loading_modal').modal('hide');
+            })
+            .catch(function(error) {
+                if (!error) { return; } // ignore cancels
+                $('#loading_modal').modal('hide');
+                new PNotify({
+                    title: `Error opening file`,
+                    text: error,
+                    type: "error",
+                    hide: false
                 });
             });
     }
@@ -506,7 +609,8 @@ function M300Composer(parent) {
                 self.filename = filename;
             }
 
-            var data = generateGcodeHeader(filename).concat(self.data(), generateGcodeFooter()).join("\n");
+            var hasHeader = self.data().length > 0 && !!self.data()[0].match(/;.*composed by.*using the M300 PWM Buzzer Plugin/);
+            var data = (hasHeader ? [] : generateGcodeHeader(filename)).concat(self.data(), (hasHeader ? [] : generateGcodeFooter())).join("\n");
 
             if (asBlob) {
                 return new Blob([data], { type: "plain/text" });
