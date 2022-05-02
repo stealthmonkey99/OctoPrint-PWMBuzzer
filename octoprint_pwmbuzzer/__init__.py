@@ -109,6 +109,9 @@ class PwmBuzzerPlugin(
     ##~~ EventHandlerPlugin mixin
 
     def on_event(self, event, payload):
+        if event == "FileAdded" and payload.get("storage") == "local" and "path" in payload:
+            self._get_m300_parser().check_tune_file(payload)
+
         if event in events.SUPPORTED_EVENTS:
             tune = self._settings.get(["events", event])
             if (tune is None or tune == tunes.NO_SELECTION_ID or (payload is not None and "path" in payload and payload["path"] == tune)):

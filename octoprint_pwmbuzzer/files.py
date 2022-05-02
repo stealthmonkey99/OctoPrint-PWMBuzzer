@@ -26,7 +26,7 @@ class M300FileParsingQueue():
         self._logger.setLevel(level=logging.DEBUG if enabled else logging.NOTSET)
 
     def _filter_m300_files(self, file):
-        if file["type"] != "machinecode":
+        if "machinecode" not in file["type"]:
             return False
 
         id = file["path"]
@@ -93,6 +93,15 @@ class M300FileParsingQueue():
                     tune_files[all_files[key]["path"]] = all_files[key]
 
         return tune_files
+
+    def check_tune_file(self, file_details):
+        # we'll use the same filter as we do at startup, but don't need to save the results -
+        # either the metadata already exists (e.g. a file was renamed/moved) or it will be queued
+        # to process async (e.g. file added/edited)
+        self._logger.info("Checking %s for %s" % (file_details.get("path"), M300_ANALYSIS_KEY))
+        metadata = self._file_manager._storage_managers["local"].get_metadata(file_details.get("path"))
+        file = {**file_details, **metadata}
+        self._filter_m300_files(file)
 
     def file_has_tune(self, filename):
         path = self._file_manager.path_on_disk("local", filename)
