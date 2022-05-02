@@ -103,7 +103,16 @@ function M300Composer(parent) {
     self.play = function() {
         if (self.isEmpty() || !parentVM.printerConnected()) { return; }
 
-        OctoPrint.control.sendGcode(self.data());
+        OctoPrint.control.sendGcode(self.data())
+            .catch(function(error) {
+                var message = error && error.responseJSON && error.responseJSON.error || "Something went wrong, please make sure the printer is connected and try again later.";
+                new PNotify({
+                    title: `Error sending Gcode to printer`,
+                    text: message,
+                    type: "error",
+                    hide: true
+                });
+            });
     }
 
     self.edit = function(action, event) {
