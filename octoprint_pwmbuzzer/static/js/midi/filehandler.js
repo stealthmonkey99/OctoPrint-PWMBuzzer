@@ -6,8 +6,12 @@ function MidiFile(arrayBuffer) {
     var trackNumber = 0;
     var trackEndIndex = 0;
 
-    self.readBytes = function(len = 4) {
-        var bytes = data.slice(pos, pos + len).reduce((sum, byte) => (sum << 8) | byte, 0);
+    self.readBytes = function(len = 4, littleEndian = false) {
+        var bytes = data.slice(pos, pos + len);
+        if (littleEndian) {
+            bytes.reverse();
+        }
+        bytes = bytes.reduce((sum, byte) => (sum << 8) | byte, 0);
         pos += len;
         return bytes;
     }
@@ -74,6 +78,21 @@ function MidiFile(arrayBuffer) {
     self.readFileHeader = function() {
         // check for header marker ("MThd" in ASCII)
         var marker = self.readBytes(4);
+
+        // .rmi files are MIDI wrapped in a RIFF format, so check if this has a RIFF
+        // header and extract the MIDI portion if so before continuing
+        if (marker === MIDI_HEADER_RIFF) {
+            var filesize = self.readBytes(4, true);
+            var rmidMarker = self.readBytes(4);
+            var dataMarker = self.readBytes(4);
+            var chunkSize = self.readBytes(4, true);
+            if (rmidMarker !== MIDI_HEADER_RMID || dataMarker != MIDI_HEADER_data) {
+                throw new Error("Invalid header data - must be a valid RMIDI file");
+            }
+            data = data.slice(0, (pos + chunkSize));    // ignore other RIFF chunks after the MIDI data chunk
+            marker = self.readBytes(4);
+        }
+
         var numBytesInHeader = self.readBytes(4);
         var midiType = self.readBytes(2);
         var numTracks = self.readBytes(2);

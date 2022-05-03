@@ -1,4 +1,4 @@
-MIDI_TYPE = "audio/midi";
+MIDI_TYPES = [".rmi", "audio/midi", "audio/x-midi"];
 
 MIDI_IMPORT_CANCEL = "MIDI_IMPORT_CANCEL";
 
@@ -6,6 +6,9 @@ IMPORT_FILE_ID = "#m300-import-file";
 
 MIDI_HEADER_MThd = 0x4d546864;
 MIDI_HEADER_MTrk = 0x4d54726b;
+MIDI_HEADER_RIFF = 0x52494646;
+MIDI_HEADER_RMID = 0x524d4944;
+MIDI_HEADER_data = 0x64617461;
 
 MIDI_CATEGORY = {
     META_FF: 0xFF,

@@ -24,7 +24,7 @@ function MidiImporter(observable, debug = false) {
         return new Promise(function(resolve, reject) {
             new PNotify({
                 title: "M300 PWM Buzzer Plugin",
-                text: `Select a MIDI file to import and convert to Gcode: <input id="m300-import-file" type="file" accept="${MIDI_TYPE}">`,
+                text: `Select a MIDI file to import and convert to Gcode: <input id="m300-import-file" type="file" accept="${MIDI_TYPES.join(",")}">`,
                 type: "info",
                 icon: "icon-file",
                 hide: false,
@@ -65,7 +65,7 @@ function MidiImporter(observable, debug = false) {
     }
 
     self.initialize = function() {
-        if (rawFile.type !== MIDI_TYPE) {
+        if (MIDI_TYPES.indexOf(rawFile.type) === -1 && rawFile.name.split(".").pop().toLowerCase() !== "rmi") {
             throw new Error("Wrong file type - must be a MIDI file");
         }
 
