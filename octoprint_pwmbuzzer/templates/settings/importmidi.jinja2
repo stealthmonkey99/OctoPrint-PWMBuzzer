@@ -12,6 +12,14 @@
                 If chords are played: 
                 <select class="input-medium" data-bind="value: options.firstNoteWins, options: [{ text: 'first note wins', value: true }, { text: 'last note wins', value: false }], optionsText: 'text', optionsValue: 'value'"></select>
             </label>
+            <label>
+                Speed:
+                <input type="range" class="input-large" min="10" max="400" step="10" data-bind="value: options.speed">
+                <div class="input-append">
+                    <input input type="number" class="input-mini text-right" min="10" max="400" step="10" data-bind="value: options.speed">
+                    <span class="add-on">%</span>
+                </div>
+            </label>
         </div>
     </div>
 

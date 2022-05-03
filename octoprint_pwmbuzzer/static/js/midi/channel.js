@@ -80,6 +80,7 @@ function MidiChannel(id, port = 0) {
     self.generateTune = function(gcode, timings, options = {}) {
         var lastNoteTicks = 0;
         var lastProgram = 0;
+        var speedFactor = options.speed() / 100;
 
         // filter to only selected tracks
         var keepTracks = new Set(self.selectedTracks());
@@ -125,7 +126,7 @@ function MidiChannel(id, port = 0) {
             if (note.start > lastNoteTicks) {
                 restTicks = note.start - lastNoteTicks;
                 if (lastNoteTicks > 0 || !options.skipInitialRest()) {
-                    var restDuration = timings.calcDuration(restTicks, lastNoteTicks);
+                    var restDuration = timings.calcDuration(restTicks, lastNoteTicks, speedFactor);
                     gcode.outputRest(restDuration);
                 }
             }
@@ -135,7 +136,7 @@ function MidiChannel(id, port = 0) {
             } else if (nextNote && nextNote.start === note.start && !options.firstNoteWins()) {
                 continue;
             }
-            var playDuration = timings.calcDuration(playTicks, note.start);
+            var playDuration = timings.calcDuration(playTicks, note.start, speedFactor);
             gcode.outputTone(note.note, playDuration);
 
             lastNoteTicks += restTicks + playTicks;

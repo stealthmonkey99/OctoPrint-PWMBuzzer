@@ -152,7 +152,9 @@ The "Display Title" option just includes the MIDI file's name as an M117 command
 
 Since each channel often represents a single instrument, you might find that your desired channel doesn't start right away (e.g. if you select a melody channel that starts after an intro from other channels).  "Ignore rest before first note in channel" allows you to skip the very first pause that would normally line the channel up with the others.
 
-Finally, most MIDI devices are polyphonic and support playing multiple notes at the same time, so imported files may contain data for notes that are started at the same time.  M300 commands are monophonic as they are handled in serial and only support a single tone at one time.  The "if chords are played" option lets you choose if the first or last note encountered should be given preference when generating tunes from the important data.
+Most MIDI devices are polyphonic and support playing multiple notes at the same time, so imported files may contain data for notes that are started at the same time.  M300 commands are monophonic as they are handled in serial and only support a single tone at one time.  The "if chords are played" option lets you choose if the first or last note encountered should be given preference when generating tunes from the important data.
+
+Finally, if you find the tune you generate is a little too slow (or too fast), you can use the "speed" slider to adjust the relative beats per minute (bpm) values when importing.
 
 Try it out with this sample MIDI file:
 

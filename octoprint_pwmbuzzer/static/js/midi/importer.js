@@ -86,6 +86,7 @@ function MidiImporter(observable, debug = false) {
                 options.displayTrackText = ko.observable(true);
                 options.skipInitialRest = ko.observable(true);
                 options.firstNoteWins = ko.observable(true);
+                options.speed = ko.observable(100);
 
                 resolve();
             }

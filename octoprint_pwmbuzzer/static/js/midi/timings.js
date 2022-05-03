@@ -37,10 +37,10 @@ function MidiTimings() {
         return bpms[i].bpm;
     }
 
-    self.calcDuration = function(ticks, currentTick) {
+    self.calcDuration = function(ticks, currentTick, speedFactor = 1) {
         if (timeDivision.type === "ticksPerBeat") {
             var beats = ticks / timeDivision.ticksPerBeat;
-            var bpm = self.getBpmAtTicks(currentTick);
+            var bpm = self.getBpmAtTicks(currentTick) * speedFactor;
             var ms = (beats / (bpm / 60)) * 1000;
             return {
                 bpm: Math.round(bpm),
