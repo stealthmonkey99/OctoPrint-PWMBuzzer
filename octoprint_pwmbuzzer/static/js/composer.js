@@ -33,6 +33,7 @@ BACKSTACK_ACTIONS = {
 function M300Composer(parent) {
     var self = this;
     var parentVM = parent;
+    var freqToNote;
 
     self.data = ko.observableArray([]);
     self.cleanupLocked = ko.observable(false);
@@ -54,8 +55,42 @@ function M300Composer(parent) {
     self.isOpStackEmpty = ko.computed(function() {
         return self.operationstack().length < 1;
     }, self);
+    self.activeNote = ko.observable(null);
     self.midiFile = ko.observable();
     self.filename = DEFAULT_FILENAME;
+    self.selectedCommandPreview = ko.computed(function() {
+        var textarea = $(TEXTAREA_ID);
+        var line = textarea.prop("value").split("\n")[self.line()];
+        var match = line && line.match(/^[^;]*M300.*\sS(\d+\.?\d*)/i);
+        if (match && textarea.is(":focus")) {
+            var frequency = match[1];
+            match = line.match(/^[^;]*M300.*\sP(\d+\.?\d*)/i);
+            var duration = match && match[1];
+            parentVM.issueToneCommand(parentVM.commands.TEST_TONE, { frequency, duration });
+        }
+        return line;
+    });
+
+    self.setActiveFrequency = function(frequency) {
+        if (!freqToNote) {
+            // populate the map on the first run
+            freqToNote = new Map();
+            var notes = Object.keys(FREQS);
+            notes.forEach(function(note) {
+                freqToNote.set(Math.round(FREQS[note]), note);
+            });
+        }
+
+        if (!frequency) {
+            self.activeNote(null);
+            return;
+        }
+
+        frequency = Math.round(frequency);
+        if (freqToNote.has(frequency)) {
+            self.activeNote(freqToNote.get(frequency));
+        }
+    }
 
     /* Event Handlers */
 

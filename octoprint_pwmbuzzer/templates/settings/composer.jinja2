@@ -1,5 +1,5 @@
 {% macro pianokey(note, octave, isHalf) -%}
-    <button class="btn{{ ' halfstep' if isHalf }}" data-bind="event: { mousedown: function() { pianoKeyPress('{{note}}{{octave}}') } }">{{ note }}</button>
+    <button class="btn{{ ' halfstep' if isHalf }}" data-bind="event: { mousedown: function() { pianoKeyPress('{{note}}{{octave}}') } }">{{ note }}<div class="key-indicator" data-bind="hidden: activeNote() !== '{{note}}{{octave}}'"><i class="icon-circle"></i></div></button>
 {%- endmacro %}
 {% macro pianokeys(note, octave) -%}
     <div class="key-group">

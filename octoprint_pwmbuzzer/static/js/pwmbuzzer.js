@@ -77,8 +77,8 @@ $(function() {
             switch (command) {
                 case COMMAND_TEST_TONE:
                     data = {
-                        frequency: self.default_frequency(),
-                        duration: self.default_duration()
+                        frequency: (options && options.frequency != undefined) ? options.frequency : self.default_frequency(),
+                        duration: (options && options.duration != undefined) ? options.duration : self.default_duration()
                     };
                     break;
 
@@ -166,10 +166,12 @@ $(function() {
                     break;
                 case MSG_SW_TONE_START:
                     self.sw_buzzer.start(data.frequency);
+                    self.composer.setActiveFrequency(data.frequency);
                     break;
                 case MSG_SW_TONE_STOP:            
                 default:
                     self.sw_buzzer.stop();
+                    self.composer.setActiveFrequency();
                     break;
             }
         }
