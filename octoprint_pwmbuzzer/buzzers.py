@@ -100,3 +100,30 @@ class SoftwareBuzzer(Buzzer):
         self._sendMessageImplementation({
             "action": "software_tone_stop",
         })
+
+class SoftwareVisualBuzzer(Buzzer):
+    def __init__(self, messageFunc):
+        self._logger = logging.getLogger(__name__+"."+self.__class__.__name__)
+
+        self._sendMessageImplementation = messageFunc
+        self._enabled = False
+
+    def debug(self, enabled):
+        self._logger.setLevel(level=logging.DEBUG if enabled else logging.NOTSET)
+
+    def is_enabled(self, value = None):
+        if value is not None:
+            self._enabled = value
+
+        return self._enabled
+
+    def start(self, frequency):
+        self._sendMessageImplementation({
+            "action": "indicate_software_tone_start",
+            "frequency": frequency,
+        })
+
+    def stop(self):
+        self._sendMessageImplementation({
+            "action": "indicate_software_tone_stop",
+        })

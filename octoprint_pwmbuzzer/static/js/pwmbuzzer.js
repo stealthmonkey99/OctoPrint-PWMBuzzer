@@ -10,6 +10,8 @@ $(function() {
     const IS_PRESET_REGEX = /^:PRESET:.+/;
 
     const COMMAND_SETTINGS_CHANGED = "settings_changed";
+    const COMMAND_SETTINGS_SHOWN = "settings_shown";
+    const COMMAND_SETTINGS_HIDDEN = "settings_hidden";
     const COMMAND_TEST_TONE = "test_tone";
     const COMMAND_TEST_TUNE = "test_tune";
     const COMMAND_TEST_TONE_START = "test_tone_start";
@@ -17,6 +19,8 @@ $(function() {
 
     const MSG_SW_TONE_START = "software_tone_start";
     const MSG_SW_TONE_STOP = "software_tone_stop";
+    const MSG_SW_INDICATE_START = "indicate_software_tone_start";
+    const MSG_SW_INDICATE_STOP = "indicate_software_tone_stop";
     const MSG_ALERT = "alert";
 
     function PwmBuzzerViewModel(parameters) {
@@ -65,6 +69,8 @@ $(function() {
 
         self.commands = {
             SETTINGS_CHANGED: COMMAND_SETTINGS_CHANGED,
+            SETTINGS_SHOWN: COMMAND_SETTINGS_SHOWN,
+            SETTINGS_HIDDEN: COMMAND_SETTINGS_HIDDEN,
             TEST_TONE: COMMAND_TEST_TONE,
             TEST_TUNE: COMMAND_TEST_TUNE,
             TEST_TONE_START: COMMAND_TEST_TONE_START,
@@ -164,14 +170,18 @@ $(function() {
                         confirm
                     });
                     break;
+                case MSG_SW_INDICATE_START:
+                    self.composer.setActiveFrequency(data.frequency);
+                    break;
+                case MSG_SW_INDICATE_STOP:
+                    self.composer.setActiveFrequency();
+                    break;
                 case MSG_SW_TONE_START:
                     self.sw_buzzer.start(data.frequency);
-                    self.composer.setActiveFrequency(data.frequency);
                     break;
                 case MSG_SW_TONE_STOP:            
                 default:
                     self.sw_buzzer.stop();
-                    self.composer.setActiveFrequency();
                     break;
             }
         }
@@ -199,10 +209,12 @@ $(function() {
         };
 
         self.onSettingsHidden = function() {
+            OctoPrint.simpleApiCommand(PLUGIN_IDENTIFIER, self.commands.SETTINGS_HIDDEN);
             self.resetLocalSettings();
         }
 
         self.onSettingsShown = function() {
+            OctoPrint.simpleApiCommand(PLUGIN_IDENTIFIER, self.commands.SETTINGS_SHOWN);
             OctoPrint.printer.getFullState()
                 .then(function(result) {
                     self.printerConnected(!result.state.flags.closedOrError);

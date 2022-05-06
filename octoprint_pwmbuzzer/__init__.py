@@ -30,6 +30,7 @@ class PwmBuzzerPlugin(
         self.tones = tones.ToneQueue()
         self.hw_buzzer = None
         self.sw_buzzer = None
+        self.sw_visual_buzzer = None
 
         self._m300_parser = None
         self._suppress_m300 = False
@@ -59,11 +60,15 @@ class PwmBuzzerPlugin(
             self.sendMessageToFrontend,
             self._settings.get_boolean(["software_tone", "enabled"]),
         )
+        self.sw_visual_buzzer = buzzers.SoftwareVisualBuzzer(
+            self.sendMessageToFrontend
+        )
         self._suppress_m300 = self._settings.get_boolean(["hardware_tone", "suppress_m300_passthrough"])
 
         debugEnabled = self._settings.get_boolean(["debug"])
         self.hw_buzzer.debug(debugEnabled)
         self.sw_buzzer.debug(debugEnabled)
+        self.sw_visual_buzzer.debug(debugEnabled)
         self._get_m300_parser().debug(debugEnabled)
         self.tones.debug(debugEnabled)
 
@@ -80,7 +85,7 @@ class PwmBuzzerPlugin(
         self._suppress_m300 = self._settings.get_boolean(["hardware_tone", "suppress_m300_passthrough"])
 
     def _get_active_buzzers(self):
-        return [buzzer for buzzer in [self.hw_buzzer, self.sw_buzzer] if buzzer is not None and buzzer.is_enabled()]
+        return [buzzer for buzzer in [self.sw_visual_buzzer, self.hw_buzzer, self.sw_buzzer] if buzzer is not None and buzzer.is_enabled()]
 
     ##~~ AssetPlugin mixin
 
@@ -147,7 +152,9 @@ class PwmBuzzerPlugin(
             "test_tone_start": ["frequency"],
             "test_tone_stop": [],
             "test_tune": ["id"],
-            "debug_clear_metadata": []
+            "debug_clear_metadata": [],
+            "settings_shown": [],
+            "settings_hidden": [],
         }
 
     def on_api_command(self, command, data):
@@ -181,7 +188,15 @@ class PwmBuzzerPlugin(
                     data["sw"].get("enabled")
                 )
             self._suppress_m300 = bool(data["hw"].get("suppress_m300"))
-        
+
+        elif command == "settings_shown":
+            if self.sw_visual_buzzer is not None:
+                self.sw_visual_buzzer.is_enabled(True)
+
+        elif command == "settings_hidden":
+            if self.sw_visual_buzzer is not None:
+                self.sw_visual_buzzer.is_enabled(False)
+
         elif command == "debug_clear_metadata":
             if not self._settings.get_boolean(["debug"]):
                 self._logger.error("Tried to clear M300 metadata while not in debug mode")
