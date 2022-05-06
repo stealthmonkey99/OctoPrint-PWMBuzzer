@@ -10,6 +10,8 @@ $(function() {
     const IS_PRESET_REGEX = /^:PRESET:.+/;
 
     const COMMAND_SETTINGS_CHANGED = "settings_changed";
+    const COMMAND_SETTINGS_SHOWN = "settings_shown";
+    const COMMAND_SETTINGS_HIDDEN = "settings_hidden";
     const COMMAND_TEST_TONE = "test_tone";
     const COMMAND_TEST_TUNE = "test_tune";
     const COMMAND_TEST_TONE_START = "test_tone_start";
@@ -17,6 +19,8 @@ $(function() {
 
     const MSG_SW_TONE_START = "software_tone_start";
     const MSG_SW_TONE_STOP = "software_tone_stop";
+    const MSG_SW_INDICATE_START = "indicate_software_tone_start";
+    const MSG_SW_INDICATE_STOP = "indicate_software_tone_stop";
     const MSG_ALERT = "alert";
 
     function PwmBuzzerViewModel(parameters) {
@@ -41,6 +45,8 @@ $(function() {
         self.sw_buzzer = new SoftwareBuzzer(self);
         self.composer = new M300Composer(self);
 
+        self.is_debug = false;
+
         /* Configuration panel Helpers */
 
         self.testTone = function() {
@@ -63,6 +69,8 @@ $(function() {
 
         self.commands = {
             SETTINGS_CHANGED: COMMAND_SETTINGS_CHANGED,
+            SETTINGS_SHOWN: COMMAND_SETTINGS_SHOWN,
+            SETTINGS_HIDDEN: COMMAND_SETTINGS_HIDDEN,
             TEST_TONE: COMMAND_TEST_TONE,
             TEST_TUNE: COMMAND_TEST_TUNE,
             TEST_TONE_START: COMMAND_TEST_TONE_START,
@@ -75,8 +83,8 @@ $(function() {
             switch (command) {
                 case COMMAND_TEST_TONE:
                     data = {
-                        frequency: self.default_frequency(),
-                        duration: self.default_duration()
+                        frequency: (options && options.frequency != undefined) ? options.frequency : self.default_frequency(),
+                        duration: (options && options.duration != undefined) ? options.duration : self.default_duration()
                     };
                     break;
 
@@ -162,6 +170,12 @@ $(function() {
                         confirm
                     });
                     break;
+                case MSG_SW_INDICATE_START:
+                    self.composer.setActiveFrequency(data.frequency);
+                    break;
+                case MSG_SW_INDICATE_STOP:
+                    self.composer.setActiveFrequency();
+                    break;
                 case MSG_SW_TONE_START:
                     self.sw_buzzer.start(data.frequency);
                     break;
@@ -182,24 +196,25 @@ $(function() {
             self.initSettings();
 
             // Persist the local settings for next time
-            self.settings.hardware_tone.enabled(self.hw_enabled());
-            self.settings.hardware_tone.gpio_pin(self.hw_gpio_pin());
-            self.settings.hardware_tone.duty_cycle(self.hw_duty_cycle());
-            self.settings.hardware_tone.suppress_m300_passthrough(self.hw_suppress_m300());
-            self.settings.default_tone.frequency(self.default_frequency());
-            self.settings.default_tone.duration(self.default_duration());
-            self.settings.software_tone.enabled(self.sw_enabled());
-            self.settings.software_tone.volume(self.sw_volume() / 100);
+            self.settings.hardware_tone.enabled(!!self.hw_enabled());
+            self.settings.hardware_tone.gpio_pin(parseInt(self.hw_gpio_pin()));
+            self.settings.hardware_tone.duty_cycle(parseInt(self.hw_duty_cycle()));
+            self.settings.default_tone.frequency(parseFloat(self.default_frequency()));
+            self.settings.default_tone.duration(parseInt(self.default_duration()));
+            self.settings.software_tone.enabled(!!self.sw_enabled());
+            self.settings.software_tone.volume(parseFloat(self.sw_volume() / 100));
             for (var event in self.events) {
                 self.settings.events[event](self.events[event].id());
             }
         };
 
         self.onSettingsHidden = function() {
+            OctoPrint.simpleApiCommand(PLUGIN_IDENTIFIER, self.commands.SETTINGS_HIDDEN);
             self.resetLocalSettings();
         }
 
         self.onSettingsShown = function() {
+            OctoPrint.simpleApiCommand(PLUGIN_IDENTIFIER, self.commands.SETTINGS_SHOWN);
             OctoPrint.printer.getFullState()
                 .then(function(result) {
                     self.printerConnected(!result.state.flags.closedOrError);
@@ -226,7 +241,7 @@ $(function() {
             self.default_frequency(self.settings.default_tone.frequency());
             self.default_duration(self.settings.default_tone.duration());
             self.sw_enabled(self.settings.software_tone.enabled());
-            self.sw_volume(self.settings.software_tone.volume() * 100);
+            self.sw_volume(parseInt(self.settings.software_tone.volume() * 100));
 
             // setup observables for event mappings
             var checkIfFile = function(event) {
@@ -241,6 +256,8 @@ $(function() {
                 }
                 self.events[event].id(self.settings.events[event]());
             }
+
+            self.is_debug = self.settings.debug && self.settings.debug();
         }
     }
 

@@ -33,6 +33,20 @@
     box-shadow: inset 1px 1px 4px 1px #ccc;
 }
 
+.piano .btn .key-indicator {
+    position: absolute;
+    bottom: 10px;
+    text-align: center;
+    width: 100%;
+    color: #ff6600;
+    text-shadow: none;
+}
+
+.piano .btn.btn.halfstep .key-indicator {
+    bottom: unset;
+    top: 10px;
+}
+
 .piano .btn.halfstep {
     background: black;
     color: white;
@@ -57,20 +71,46 @@
     box-shadow: inset -1px -1px 6px 2px #999;
 }
 
+.composition-block {
+    position: relative;
+    overflow: hidden;
+}
+
+.composition-caret {
+    position: absolute;
+    display: block;
+    margin-top: 4px;
+    margin-left: 6px;
+    color: #c0c0c0;
+}
+
 .composition-text {
-    margin-top: 10px;
     height: 180px;
     max-width: 693px;
+    padding-left: 20px;
+    padding-bottom: 20px;
     font-family: monospace;
     font-weight: bold;
     font-size: small;
     overflow-y: scroll;
 }
 
-.icon-undo.icon-redo:before {
-    -moz-transform: scale(-1, 1);
-    -webkit-transform: scale(-1, 1);
-    -o-transform: scale(-1, 1);
-    -ms-transform: scale(-1, 1);
-    transform: scale(-1, 1);
+.btn#edit-cleanup {
+    border-right: none;
+}
+
+.edit-cleanup-lock {
+    display: inline-block;
+    border-left: none;
+    padding-left: 0px;
+    padding-right: 6px;
+    -webkit-border-radius: 0 !important;
+    -moz-border-radius: 0 !important;
+    border-radius: 0 !important;
+}
+
+input.edit-cleanup-lock-checkbox {
+    margin-top: 0;
+    margin-bottom: 2px;
+    margin-left: 6px;
 }
