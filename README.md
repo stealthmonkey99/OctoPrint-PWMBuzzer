@@ -18,6 +18,7 @@ I don't have a "recommended" buzzer or speaker - they are all going to sound uni
 
 - https://www.adafruit.com/product/1898
 - https://www.adafruit.com/product/1891
+- https://www.amazon.com/dp/B097T7N6DC
 - https://www.amazon.com/gp/product/B07MRJKHCQ (I removed the buzzer when I was done practicing soldering)
 
 Larger speakers may require more than the 3.3V we're using from a GPIO pin as diagramed above.  You might also experiment with amplifying, e.g. [using 5V like I have seen others try](https://raspberrypi.stackexchange.com/questions/61547/different-frequencies-with-piezo-buzzer-python).
