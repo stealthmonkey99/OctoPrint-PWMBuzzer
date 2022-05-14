@@ -199,6 +199,7 @@ $(function() {
             self.settings.hardware_tone.enabled(!!self.hw_enabled());
             self.settings.hardware_tone.gpio_pin(parseInt(self.hw_gpio_pin()));
             self.settings.hardware_tone.duty_cycle(parseInt(self.hw_duty_cycle()));
+            self.settings.hardware_tone.suppress_m300_passthrough(!!self.hw_suppress_m300());
             self.settings.default_tone.frequency(parseFloat(self.default_frequency()));
             self.settings.default_tone.duration(parseInt(self.default_duration()));
             self.settings.software_tone.enabled(!!self.sw_enabled());
