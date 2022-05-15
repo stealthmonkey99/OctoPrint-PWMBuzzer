@@ -19,34 +19,34 @@
     <label class="control-label">{{ _('GPIO Pin') }}</label>
     <div class="controls">
         <select data-bind="value: hw_gpio_pin, enable: hw_enabled">
-            <option value="0">GPIO 0</option>
-            <option value="1">GPIO 1</option>
-            <option value="2">GPIO 2</option>
-            <option value="3">GPIO 3</option>
-            <option value="4">GPIO 4</option>
-            <option value="5">GPIO 5</option>
-            <option value="6">GPIO 6</option>
-            <option value="7">GPIO 7</option>
-            <option value="8">GPIO 8</option>
-            <option value="9">GPIO 9</option>
-            <option value="10">GPIO 10</option>
-            <option value="11">GPIO 11</option>
+            <option value="0" data-bind="hidden: hw_hardware_timer">GPIO 0</option>
+            <option value="1" data-bind="hidden: hw_hardware_timer">GPIO 1</option>
+            <option value="2" data-bind="hidden: hw_hardware_timer">GPIO 2</option>
+            <option value="3" data-bind="hidden: hw_hardware_timer">GPIO 3</option>
+            <option value="4" data-bind="hidden: hw_hardware_timer">GPIO 4</option>
+            <option value="5" data-bind="hidden: hw_hardware_timer">GPIO 5</option>
+            <option value="6" data-bind="hidden: hw_hardware_timer">GPIO 6</option>
+            <option value="7" data-bind="hidden: hw_hardware_timer">GPIO 7</option>
+            <option value="8" data-bind="hidden: hw_hardware_timer">GPIO 8</option>
+            <option value="9" data-bind="hidden: hw_hardware_timer">GPIO 9</option>
+            <option value="10" data-bind="hidden: hw_hardware_timer">GPIO 10</option>
+            <option value="11" data-bind="hidden: hw_hardware_timer">GPIO 11</option>
             <option value="12">GPIO 12</option>
             <option value="13">GPIO 13</option>
-            <option value="14">GPIO 14</option>
-            <option value="15">GPIO 15</option>
-            <option value="16">GPIO 16</option>
-            <option value="17">GPIO 17</option>
+            <option value="14" data-bind="hidden: hw_hardware_timer">GPIO 14</option>
+            <option value="15" data-bind="hidden: hw_hardware_timer">GPIO 15</option>
+            <option value="16" data-bind="hidden: hw_hardware_timer">GPIO 16</option>
+            <option value="17" data-bind="hidden: hw_hardware_timer">GPIO 17</option>
             <option value="18">GPIO 18</option>
             <option value="19">GPIO 19</option>
-            <option value="20">GPIO 20</option>
-            <option value="21">GPIO 21</option>
-            <option value="22">GPIO 22</option>
-            <option value="23">GPIO 23</option>
-            <option value="24">GPIO 24</option>
-            <option value="25">GPIO 25</option>
-            <option value="26">GPIO 26</option>
-            <option value="27">GPIO 27</option>
+            <option value="20" data-bind="hidden: hw_hardware_timer">GPIO 20</option>
+            <option value="21" data-bind="hidden: hw_hardware_timer">GPIO 21</option>
+            <option value="22" data-bind="hidden: hw_hardware_timer">GPIO 22</option>
+            <option value="23" data-bind="hidden: hw_hardware_timer">GPIO 23</option>
+            <option value="24" data-bind="hidden: hw_hardware_timer">GPIO 24</option>
+            <option value="25" data-bind="hidden: hw_hardware_timer">GPIO 25</option>
+            <option value="26" data-bind="hidden: hw_hardware_timer">GPIO 26</option>
+            <option value="27" data-bind="hidden: hw_hardware_timer">GPIO 27</option>
         </select>
     </div>
 </div>
@@ -59,6 +59,15 @@
             <input input type="number" class="input-mini text-right" min="0" max="100" data-bind="value: hw_duty_cycle, enable: hw_enabled">
             <span class="add-on">%</span>
         </div>
+    </div>
+</div>
+
+<div class="control-group">
+    <div class="controls">
+        <label class="checkbox">
+            <input type="checkbox" data-bind="checked: hw_hardware_timer, event: { change: checkPins }"> {{ _('Use hardware timer for PWM (requires reboot)') }}
+            <span class="help-block">{{ _('Enable this option to utilize the hardware timer for better quality PWM tones.  You will need root access to enabled the pwm dtoverlay in /boot/config.txt.') }}</span>
+        </label>
     </div>
 </div>
 

@@ -34,6 +34,7 @@ $(function() {
         self.hw_enabled = ko.observable();
         self.hw_gpio_pin = ko.observable();
         self.hw_duty_cycle = ko.observable();
+        self.hw_hardware_timer = ko.observable();
         self.hw_suppress_m300 = ko.observable();
         self.sw_enabled = ko.observable();
         self.sw_volume = ko.observable();
@@ -48,6 +49,12 @@ $(function() {
         self.is_debug = false;
 
         /* Configuration panel Helpers */
+
+        self.checkPins = function() {
+            if (self.hw_hardware_timer() && [12, 13, 18, 19].indexOf(parseInt(self.hw_gpio_pin())) === -1) {
+                self.hw_gpio_pin(12);
+            }
+        }
 
         self.testTone = function() {
             self.issueToneCommand(self.commands.TEST_TONE);
@@ -119,6 +126,7 @@ $(function() {
                     enabled: self.hw_enabled(),
                     pin: self.hw_gpio_pin(),
                     duty_cycle: self.hw_duty_cycle(),
+                    hardware_timer: self.hw_hardware_timer(),
                     suppress_m300: self.hw_suppress_m300()
                 },
                 sw: {
@@ -162,6 +170,18 @@ $(function() {
                             }
                         );
                     }
+                    if (!!data.reboot) {
+                        confirm.confirm = true;
+                        confirm.buttons.push(
+                            {
+                                text: "Reboot",
+                                click: function(notice) {
+                                    OctoPrint.system.executeCommand("core", "reboot");
+                                    notice.remove();
+                                }
+                            }
+                        );
+                    }
                     new PNotify({
                         title: "M300 PWM Buzzer Plugin",
                         text: data.text || "",
@@ -199,6 +219,7 @@ $(function() {
             self.settings.hardware_tone.enabled(!!self.hw_enabled());
             self.settings.hardware_tone.gpio_pin(parseInt(self.hw_gpio_pin()));
             self.settings.hardware_tone.duty_cycle(parseInt(self.hw_duty_cycle()));
+            self.settings.hardware_tone.hardware_timer(!!self.hw_hardware_timer());
             self.settings.hardware_tone.suppress_m300_passthrough(!!self.hw_suppress_m300());
             self.settings.default_tone.frequency(parseFloat(self.default_frequency()));
             self.settings.default_tone.duration(parseInt(self.default_duration()));
@@ -238,6 +259,7 @@ $(function() {
             self.hw_enabled(self.settings.hardware_tone.enabled());
             self.hw_gpio_pin(self.settings.hardware_tone.gpio_pin());
             self.hw_duty_cycle(self.settings.hardware_tone.duty_cycle());
+            self.hw_hardware_timer(self.settings.hardware_tone.hardware_timer());
             self.hw_suppress_m300(self.settings.hardware_tone.suppress_m300_passthrough());
             self.default_frequency(self.settings.default_tone.frequency());
             self.default_duration(self.settings.default_tone.duration());

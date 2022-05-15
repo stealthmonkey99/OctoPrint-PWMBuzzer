@@ -27,6 +27,26 @@ Larger speakers may require more than the 3.3V we're using from a GPIO pin as di
 
 Sorry, no - this plugin only works over the GPIO pins so you will not be able to hear tones through speakers or headphones plugged into the audio jack.  There is a software buzzer option that _does_ play through your computer's audio jack, but this requires you to be actively logged into the OctoPrint client in your browser for the tones to be played.
 
+### Can I use the hardware timer for better quality sound?
+
+Yes, you can now enable the hardware timer for PWM to improve the sound quality of the passive buzzer.  This should help make your tones sound smoother and less crackly, but it does require you to use one of only 4 GPIO pins and manually configure a pwm dtoverlay in your `/boot/config.txt` file:
+
+| GPIO Pin # | dtoverlay to configure |
+|-|-|
+| 12 | `dtoverlay=pwm,pin=12,func=4` |
+| 13 | `dtoverlay=pwm,pin=13,func=4` |
+| 18 | `dtoverlay=pwm,pin=18,func=2` |
+| 19 | `dtoverlay=pwm,pin=19,func=2` |
+
+You'll need to provide the admin password to edit the configuration file with root privileges:
+```bash
+sudo nano /boot/config.txt
+```
+
+Add the dtoverlay in this file (see the table above) and save your changes with `ctrl + x`.  If you already see a line like `dtoverlay=pwm...` in the file, you can comment it out with a `#` at the start of the line, then add your own dtoverlay to a new line.
+
+After saving the configuration you'll want to go back to your OctoPrint client to configure the plugin.  Select the 'Use hardware timer for PWM' option, choose the appropriate GPIO pin, save your settings, and reboot to start using these settings.
+
 ### Plugin Setup
 
 Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)

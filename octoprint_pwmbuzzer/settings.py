@@ -3,6 +3,7 @@ DEFAULT_SETTINGS = {
         "enabled": False,
         "gpio_pin": 16,
         "duty_cycle": 50,
+        "hardware_timer": False,
         "suppress_m300_passthrough": False,
     },
     "software_tone": {
