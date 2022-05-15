@@ -52,9 +52,11 @@ class PwmBuzzerPlugin(
 
     def on_settings_initialized(self):
         self.hw_buzzer = buzzers.HardwareBuzzer(
+            self.sendMessageToFrontend,
             self._settings.get_boolean(["hardware_tone", "enabled"]),
             self._settings.get_int(["hardware_tone", "gpio_pin"]),
-            self._settings.get_int(["hardware_tone", "duty_cycle"])
+            self._settings.get_int(["hardware_tone", "duty_cycle"]),
+            self._settings.get_boolean(["hardware_tone", "hardware_timer"])
         )
         self.sw_buzzer = buzzers.SoftwareBuzzer(
             self.sendMessageToFrontend,
@@ -77,7 +79,8 @@ class PwmBuzzerPlugin(
         self.hw_buzzer.set_settings(
             self._settings.get_boolean(["hardware_tone", "enabled"]),
             self._settings.get_int(["hardware_tone", "gpio_pin"]),
-            self._settings.get_int(["hardware_tone", "duty_cycle"])
+            self._settings.get_int(["hardware_tone", "duty_cycle"]),
+            self._settings.get_boolean(["hardware_tone", "hardware_timer"])
         )
         self.sw_buzzer.set_settings(
             self._settings.get_boolean(["software_tone", "enabled"])
@@ -181,7 +184,8 @@ class PwmBuzzerPlugin(
                 self.hw_buzzer.set_settings(
                     data["hw"].get("enabled"),
                     data["hw"].get("pin"),
-                    data["hw"].get("duty_cycle")
+                    data["hw"].get("duty_cycle"),
+                    data["hw"].get("hardware_timer")
                 )
             if self.sw_buzzer is not None:
                 self.sw_buzzer.set_settings(

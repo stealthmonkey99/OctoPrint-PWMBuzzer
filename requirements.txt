@@ -7,4 +7,5 @@
 ###
 
 RPi.GPIO
+rpi_hardware_pwm
 .

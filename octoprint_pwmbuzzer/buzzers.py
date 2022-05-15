@@ -3,6 +3,7 @@ import logging
 
 try:
     import RPi.GPIO as GPIO
+    from rpi_hardware_pwm import HardwarePWM
     GPIO_AVAILABLE = True
 except ImportError:
     GPIO_AVAILABLE = False
@@ -24,11 +25,14 @@ class Buzzer(ABC):
         pass
 
 class HardwareBuzzer(Buzzer):
-    def __init__(self, enabled, pin, duty_cycle):
+    def __init__(self, messageFunc, enabled, pin, duty_cycle, hardware_timer):
         self._logger = logging.getLogger(__name__+"."+self.__class__.__name__)
 
         self._pwm = None
-        self.set_settings(enabled, pin, duty_cycle)
+        self._sendMessageImplementation = messageFunc
+
+        self._use_hw_timer = None
+        self.set_settings(enabled, pin, duty_cycle, hardware_timer)
 
     def debug(self, enabled):
         self._logger.setLevel(level=logging.DEBUG if enabled else logging.NOTSET)
@@ -36,15 +40,26 @@ class HardwareBuzzer(Buzzer):
     def Available():
         return GPIO_AVAILABLE
 
-    def set_settings(self, enabled, pin, duty_cycle):
+    def set_settings(self, enabled, pin, duty_cycle, hardware_timer):
         if enabled is not None:
             self._enabled = bool(enabled)
         if pin is not None:
             self._pin = int(pin)
         if duty_cycle is not None:
             self._duty_cycle = int(duty_cycle)
+        if hardware_timer is not None and self._use_hw_timer is not bool(hardware_timer):
+            self._use_hw_timer = bool(hardware_timer)
+            file = open("/boot/config.txt", "a")
+            file.write("\n\n# dtoverlay=pwm,pin=12,func=4\n")
+            file.close()
+            self._sendMessageImplementation({
+                "action": "alert",
+                "text": "Hardware PWM Timer enabled, a reboot is required.",
+                "type": "warning",
+                "reboot": True
+            })
 
-        self._logger.info("HardwareBuzzer set to enabled {self._enabled} pin {self._pin} with duty cycle {self._duty_cycle}".format(**locals()))
+        self._logger.info("HardwareBuzzer set to enabled {self._enabled} pin {self._pin} with duty cycle {self._duty_cycle} and hardware timer {self._use_hw_timer}".format(**locals()))
 
     def is_enabled(self):
         return HardwareBuzzer.Available() and self._enabled
@@ -54,9 +69,12 @@ class HardwareBuzzer(Buzzer):
             return
 
         self._logger.debug("🎵 starting tone... {frequency}Hz (using BCM pin {self._pin} at {self._duty_cycle}% duty cycle)".format(**locals()))
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self._pin, GPIO.OUT)
-        self._pwm = GPIO.PWM(self._pin, frequency)
+        if self._use_hw_timer:
+            self._pwm = HardwarePWM(pwm_channel=0, hz=frequency)
+        else:
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(self._pin, GPIO.OUT)
+            self._pwm = GPIO.PWM(self._pin, frequency)
         self._pwm.start(self._duty_cycle)
 
     def stop(self):
@@ -67,7 +85,8 @@ class HardwareBuzzer(Buzzer):
         if self._pwm is not None:
             self._pwm.stop()
             self._pwm = None
-            GPIO.cleanup()
+            if not self._use_hw_timer:
+                GPIO.cleanup()
         elif self._enabled:
             self._logger.warn("Hardware buzzer is enabled, but reference to PWM buzzer wasn't found when trying to stop the tone.")
 
