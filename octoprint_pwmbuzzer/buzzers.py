@@ -6,7 +6,7 @@ try:
     import RPi.GPIO as GPIO
     from rpi_hardware_pwm import HardwarePWM
     GPIO_AVAILABLE = True
-except ImportError:
+except (ImportError, RuntimeError):
     GPIO_AVAILABLE = False
 
 OVERLAY_CONFIG_12 = "dtoverlay=pwm,pin=12,func=4"

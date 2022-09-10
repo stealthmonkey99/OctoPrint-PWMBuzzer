@@ -1,4 +1,4 @@
-MIDI_TYPES = [".rmi", "audio/midi", "audio/x-midi"];
+MIDI_TYPES = [".rmi", "audio/mid", "audio/midi", "audio/x-midi"];
 
 MIDI_IMPORT_CANCEL = "MIDI_IMPORT_CANCEL";
 
